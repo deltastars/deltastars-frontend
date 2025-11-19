@@ -748,3 +748,5 @@ export interface InvoiceItem {
 export interface VipClient {
   id: string;
   companyNa
+npm install
+npm run dev

@@ -1,94 +1,750 @@
-# This workflow will build and push a new container image to Amazon ECR,
-# and then will deploy a new task definition to Amazon ECS, when there is a push to the "main" branch.
-#
-# To use this workflow, you will need to complete the following set-up steps:
-#
-# 1. Create an ECR repository to store your images.
-#    For example: `aws ecr create-repository --repository-name my-ecr-repo --region us-east-2`.
-#    Replace the value of the `ECR_REPOSITORY` environment variable in the workflow below with your repository's name.
-#    Replace the value of the `AWS_REGION` environment variable in the workflow below with your repository's region.
-#
-# 2. Create an ECS task definition, an ECS cluster, and an ECS service.
-#    For example, follow the Getting Started guide on the ECS console:
-#      https://us-east-2.console.aws.amazon.com/ecs/home?region=us-east-2#/firstRun
-#    Replace the value of the `ECS_SERVICE` environment variable in the workflow below with the name you set for the Amazon ECS service.
-#    Replace the value of the `ECS_CLUSTER` environment variable in the workflow below with the name you set for the cluster.
-#
-# 3. Store your ECS task definition as a JSON file in your repository.
-#    The format should follow the output of `aws ecs register-task-definition --generate-cli-skeleton`.
-#    Replace the value of the `ECS_TASK_DEFINITION` environment variable in the workflow below with the path to the JSON file.
-#    Replace the value of the `CONTAINER_NAME` environment variable in the workflow below with the name of the container
-#    in the `containerDefinitions` section of the task definition.
-#
-# 4. Store an IAM user access key in GitHub Actions secrets named `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`.
-#    See the documentation for each action used below for the recommended IAM policies for this IAM user,
-#    and best practices on handling the access key credentials.
+deltastars-frontend/
+├── public/
+│   ├── index.html
+│   ├── manifest.json
+│   ├── service-worker.js
+│   ├── logo.svg
+│   ├── hero.jpg
+│   ├── showroom-banner.jpg
+│   ├── sw.js
+│   ├── robots.txt
+│   └── icons/
+│       ├── icon-192x192.png
+│       ├── icon-512x512.png
+│       ├── icon-72x72.png
+│       ├── icon-96x96.png
+│       ├── icon-128x128.png
+│       ├── icon-144x144.png
+│       ├── icon-152x152.png
+│       ├── icon-384x384.png
+│       └── badge-96x96.png
+├── src/
+│   ├── index.tsx
+│   ├── App.tsx
+│   ├── types.ts
+│   ├── constants.ts
+│   ├── products.ts
+│   ├── accounting.ts
+│   ├── lib/
+│   │   ├── Icons.tsx
+│   │   ├── api.ts
+│   │   ├── mockApi.ts
+│   │   ├── encryption.ts
+│   │   ├── utils.ts
+│   │   └── pwa.ts
+│   ├── contexts/
+│   │   ├── I18nContext.tsx
+│   │   ├── SettingsContext.tsx
+│   │   ├── ToastContext.tsx
+│   │   ├── GeminiAiProvider.tsx
+│   │   ├── SecurityContext.tsx
+│   │   ├── AccountingContext.tsx
+│   │   └── ProductManagementContext.tsx
+│   ├── components/
+│   │   ├── Header.tsx
+│   │   ├── Footer.tsx
+│   │   ├── Home.tsx
+│   │   ├── ProductCard.tsx
+│   │   ├── ProductDetailPage.tsx
+│   │   ├── ProductsPage.tsx
+│   │   ├── CartPage.tsx
+│   │   ├── WishlistPage.tsx
+│   │   ├── ShowroomPage.tsx
+│   │   ├── LoginPage.tsx
+│   │   ├── VipLoginPage.tsx
+│   │   ├── DashboardPage.tsx
+│   │   ├── VipDashboardPage.tsx
+│   │   ├── PrivacyPolicy.tsx
+│   │   ├── TermsAndConditions.tsx
+│   │   ├── LoadingSpinner.tsx
+│   │   ├── ErrorBoundary.tsx
+│   │   ├── AiAssistant.tsx
+│   │   ├── ToastContainer.tsx
+│   │   ├── ImageZoomModal.tsx
+│   │   ├── OfflineModeBanner.tsx
+│   │   ├── UpdateNotification.tsx
+│   │   ├── developer/
+│   │   │   ├── DeveloperAuthModal.tsx
+│   │   │   ├── ProductManagementPanel.tsx
+│   │   │   ├── ShowroomManagementPanel.tsx
+│   │   │   ├── ProductForm.tsx
+│   │   │   └── PromotionForm.tsx
+│   │   └── multimedia/
+│   │       ├── MusicPlayer.tsx
+│   │       └── AiImageEditor.tsx
+│   └── i18n/
+│       ├── ar.json
+│       └── en.json
+├── .env.example
+├── .gitignore
+├── package.json
+├── README.md
+├── tsconfig.json
+├── tsconfig.node.json
+└── vite.config.ts
+{
+  "name": "deltastars-frontend",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.12.0",
+    "@supabase/supabase-js": "^2.39.8",
+    "axios": "^1.6.8",
+    "crypto-js": "^4.2.0",
+    "firebase": "^10.11.0",
+    "idb-keyval": "^6.2.1",
+    "localforage": "^1.10.0",
+    "match-sorter": "^6.3.1",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-hook-form": "^7.51.4",
+    "react-router-dom": "^6.23.1",
+    "react-virtualized": "^9.22.5",
+    "sort-by": "^1.2.0",
+    "workbox-core": "^7.0.0",
+    "workbox-routing": "^7.0.0",
+    "workbox-strategies": "^7.0.0"
+  },
+  "devDependencies": {
+    "@types/crypto-js": "^4.2.2",
+    "@types/node": "^20.12.7",
+    "@types/react": "^18.2.74",
+    "@types/react-dom": "^18.2.24",
+    "@vitejs/plugin-react": "^4.2.1",
+    "autoprefixer": "^10.4.19",
+    "postcss": "^8.4.38",
+    "tailwindcss": "^3.4.3",
+    "typescript": "^5.4.5",
+    "vite": "^5.2.11",
+    "workbox-webpack-plugin": "^7.0.0"
+  }
+}
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import { VitePWA } from 'vite-plugin-pwa';
 
-name: Deploy to Amazon ECS
+export default defineConfig({
+  plugins: [
+    react(),
+    VitePWA({
+      registerType: 'autoUpdate',
+      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
+      manifest: {
+        name: 'Delta Stars Store',
+        short_name: 'DeltaStars',
+        description: 'شركة نجوم دلتا للتجارة - متجر إلكتروني احترافي',
+        theme_color: '#1a56db',
+        icons: [
+          {
+            src: 'icons/icon-192x192.png',
+            sizes: '192x192',
+            type: 'image/png'
+          },
+          {
+            src: 'icons/icon-512x512.png',
+            sizes: '512x512',
+            type: 'image/png'
+          },
+          {
+            src: 'icons/icon-512x512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'any maskable'
+          }
+        ]
+      },
+      workbox: {
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,json}'],
+        runtimeCaching: [
+          {
+            urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'google-fonts-cache',
+              expiration: {
+                maxEntries: 10,
+                maxAgeSeconds: 60 * 60 * 24 * 365 // <== 365 days
+              },
+              cacheableResponse: {
+                statuses: [0, 200]
+              }
+            }
+          },
+          {
+            urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'gstatic-fonts-cache',
+              expiration: {
+                maxEntries: 10,
+                maxAgeSeconds: 60 * 60 * 24 * 365 // <== 365 days
+              },
+              cacheableResponse: {
+                statuses: [0, 200]
+              }
+            }
+          }
+        ]
+      }
+    })
+  ],
+  server: {
+    port: 5173,
+    open: true
+  },
+  build: {
+    outDir: 'dist',
+    assetsDir: 'assets'
+  }
+});
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "useDefineForClassFields": true,
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "skipLibCheck": true,
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"]
+    }
+  },
+  "include": ["src"],
+  "references": [{ "path": "./tsconfig.node.json" }]
+}
+{
+  "compilerOptions": {
+    "composite": true,
+    "skipLibCheck": true,
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "allowSyntheticDefaultImports": true
+  },
+  "include": ["vite.config.ts"]
+}
+VITE_GEMINI_API_KEY=your_gemini_api_key_here
+VITE_SUPABASE_URL=your_supabase_url_here
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key_here
+VITE_FIREBASE_API_KEY=your_firebase_api_key_here
+VITE_FIREBASE_AUTH_DOMAIN=your_firebase_auth_domain_here
+VITE_FIREBASE_PROJECT_ID=your_firebase_project_id_here
+VITE_FIREBASE_STORAGE_BUCKET=your_firebase_storage_bucket_here
+VITE_FIREBASE_MESSAGING_SENDER_ID=your_firebase_messaging_sender_id_here
+VITE_FIREBASE_APP_ID=your_firebase_app_id_here
+VITE_FIREBASE_MEASUREMENT_ID=your_firebase_measurement_id_here
+# dependencies
+node_modules/
 
-on:
-  push:
-    branches: [ "main" ]
+# build
+dist/
+.cache/
+.vite/
 
-env:
-  AWS_REGION: MY_AWS_REGION                   # set this to your preferred AWS region, e.g. us-west-1
-  ECR_REPOSITORY: MY_ECR_REPOSITORY           # set this to your Amazon ECR repository name
-  ECS_SERVICE: MY_ECS_SERVICE                 # set this to your Amazon ECS service name
-  ECS_CLUSTER: MY_ECS_CLUSTER                 # set this to your Amazon ECS cluster name
-  ECS_TASK_DEFINITION: MY_ECS_TASK_DEFINITION # set this to the path to your Amazon ECS task definition
-                                               # file, e.g. .aws/task-definition.json
-  CONTAINER_NAME: MY_CONTAINER_NAME           # set this to the name of the container in the
-                                               # containerDefinitions section of your task definition
+# environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 
-permissions:
-  contents: read
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
 
-jobs:
-  deploy:
-    name: Deploy
-    runs-on: ubuntu-latest
-    environment: production
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="/logo.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Delta Stars - المتجر الإلكتروني</title>
+  <meta name="description" content="شركة نجوم دلتا للتجارة - الرواد في تجارة واستيراد الخضروات والفواكه الطازجة وأفخر التمور والبيض في المملكة العربية السعودية">
+  <meta name="keywords" content="فواكه, خضروات, تمور, بيض, نجوم دلتا, السعودية, جدة">
+  <meta property="og:title" content="Delta Stars - المتجر الإلكتروني">
+  <meta property="og:description" content="شركة نجوم دلتا للتجارة - الرواد في تجارة واستيراد الخضروات والفواكه الطازجة وأفخر التمور والبيض في المملكة العربية السعودية">
+  <meta property="og:image" content="/logo.svg">
+  <meta property="og:url" content="https://deltastars-ksa.com">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#1a56db">
+  <link rel="apple-touch-icon" href="/icons/icon-192x192.png">
+  <link rel="mask-icon" href="/icons/mask-icon.svg" color="#1a56db">
+  <meta name="apple-mobile-web-app-title" content="Delta Stars">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+</head>
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/index.tsx"></script>
+  <script>
+    // تسجيل Service Worker
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/service-worker.js')
+          .then(registration => {
+            console.log('ServiceWorker registered with scope:', registration.scope);
+          })
+          .catch(error => {
+            console.log('ServiceWorker registration failed:', error);
+          });
+      });
+    }
+  </script>
+</body>
+</html>
+{
+  "name": "Delta Stars Store",
+  "short_name": "DeltaStars",
+  "description": "الرواد في تجارة واستيراد الخضروات والفواكه الطازجة وأفخر التمور والبيض في المملكة العربية السعودية",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#1a56db",
+  "orientation": "portrait",
+  "categories": ["shopping", "business", "food"],
+  "lang": "ar",
+  "dir": "rtl",
+  "icons": [
+    {
+      "src": "/icons/icon-72x72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-96x96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-128x128.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-144x144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-152x152.png",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-384x384.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshots/home.jpg",
+      "sizes": "1280x720",
+      "type": "image/jpeg"
+    },
+    {
+      "src": "/screenshots/products.jpg",
+      "sizes": "720x1280",
+      "type": "image/jpeg"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "المنتجات",
+      "short_name": "المنتجات",
+      "description": "عرض جميع المنتجات",
+      "url": "/products",
+      "icons": [
+        {
+          "src": "/icons/shortcut-products.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "السلة",
+      "short_name": "السلة",
+      "description": "عرض سلة التسوق",
+      "url": "/cart",
+      "icons": [
+        {
+          "src": "/icons/shortcut-cart.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "العروض",
+      "short_name": "العروض",
+      "description": "عرض العروض الترويجية",
+      "url": "/showroom",
+      "icons": [
+        {
+          "src": "/icons/shortcut-offers.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
+  ]
+}
 
-    steps:
-    - name: Checkout
-      uses: actions/checkout@v4
+// اسم الملف: public/service-worker.js
 
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v1
-      with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: ${{ env.AWS_REGION }}
+const CACHE_NAME = 'delta-stars-v3';
+const OFFLINE_URL = '/offline.html';
+const PRECACHE_URLS = [
+  '/',
+  '/index.html',
+  '/logo.svg',
+  '/hero.jpg',
+  '/showroom-banner.jpg',
+  '/icons/icon-192x192.png',
+  '/icons/icon-512x512.png'
+];
 
-    - name: Login to Amazon ECR
-      id: login-ecr
-      uses: aws-actions/amazon-ecr-login@v1
+// تهيئة الـ Service Worker
+self.addEventListener('install', (event) => {
+  console.log('Service Worker installing...');
+  
+  event.waitUntil(
+    Promise.all([
+      // تخزين الملفات الثابتة
+      caches.open(`${CACHE_NAME}-static`)
+        .then(cache => cache.addAll(PRECACHE_URLS)),
+      
+      // صفحة التعامل مع حالات عدم الاتصال
+      caches.open(`${CACHE_NAME}-offline`)
+        .then(cache => cache.add('/offline.html'))
+    ]).then(() => {
+      console.log('Service Worker installed successfully');
+      return self.skipWaiting();
+    })
+  );
+});
 
-    - name: Build, tag, and push image to Amazon ECR
-      id: build-image
-      env:
-        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-        IMAGE_TAG: ${{ github.sha }}
-      run: |
-        # Build a docker container and
-        # push it to ECR so that it can
-        # be deployed to ECS.
-        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
-        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-        echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+// تفعيل الـ Service Worker
+self.addEventListener('activate', (event) => {
+  console.log('Service Worker activating...');
+  
+  event.waitUntil(
+    caches.keys().then(cacheNames => {
+      return Promise.all(
+        cacheNames
+          .filter(cacheName => cacheName.startsWith('delta-stars-') && cacheName !== CACHE_NAME)
+          .map(cacheName => caches.delete(cacheName))
+      );
+    }).then(() => {
+      console.log('Service Worker activated successfully');
+      return self.clients.claim();
+    })
+  );
+});
 
-    - name: Fill in the new image ID in the Amazon ECS task definition
-      id: task-def
-      uses: aws-actions/amazon-ecs-render-task-definition@v1
-      with:
-        task-definition: ${{ env.ECS_TASK_DEFINITION }}
-        container-name: ${{ env.CONTAINER_NAME }}
-        image: ${{ steps.build-image.outputs.image }}
+// التعامل مع طلبات الشبكة
+self.addEventListener('fetch', (event) => {
+  const requestUrl = new URL(event.request.url);
+  
+  // تجاهل طلبات غير HTTP
+  if (requestUrl.protocol !== 'http:' && requestUrl.protocol !== 'https:') {
+    return;
+  }
 
-    - name: Deploy Amazon ECS task definition
-      uses: aws-actions/amazon-ecs-deploy-task-definition@v1
-      with:
-        task-definition: ${{ steps.task-def.outputs.task-definition }}
-        service: ${{ env.ECS_SERVICE }}
-        cluster: ${{ env.ECS_CLUSTER }}
-        wait-for-service-stability: true
+  // التعامل مع طلبات API
+  if (requestUrl.pathname.startsWith('/api/')) {
+    handleApiRequest(event);
+    return;
+  }
+
+  // التعامل مع الصور
+  if (requestUrl.pathname.startsWith('/images/')) {
+    handleImageRequest(event);
+    return;
+  }
+
+  // التعامل مع الملفات الثابتة
+  handleStaticRequest(event);
+});
+
+// التعامل مع طلبات API
+function handleApiRequest(event) {
+  event.respondWith(
+    caches.match(event.request)
+      .then(response => {
+        if (response) {
+          return response;
+        }
+        return fetchWithNetworkFallback(event.request);
+      })
+  );
+}
+
+// التعامل مع طلبات الصور
+function handleImageRequest(event) {
+  event.respondWith(
+    caches.match(event.request)
+      .then(response => {
+        if (response) {
+          return response;
+        }
+        return fetchWithNetworkFallback(event.request, { cache: 'images' });
+      })
+  );
+}
+
+// التعامل مع الملفات الثابتة
+function handleStaticRequest(event) {
+  event.respondWith(
+    caches.match(event.request)
+      .then(response => {
+        if (response) {
+          return response;
+        }
+        return fetchWithNetworkFallback(event.request, { cache: 'static' });
+      })
+  );
+}
+
+// جلب مع خيار السقوط عند عدم الاتصال
+function fetchWithNetworkFallback(request, options = {}) {
+  return fetch(request)
+    .then(response => {
+      if (!response || response.status !== 200 || response.type !== 'basic') {
+        return response;
+      }
+
+      // حفظ الاستجابة في الذاكرة المؤقتة
+      const responseToCache = response.clone();
+      const cacheName = options.cache ? `${CACHE_NAME}-${options.cache}` : `${CACHE_NAME}-static`;
+      
+      caches.open(cacheName)
+        .then(cache => {
+          cache.put(request, responseToCache);
+        });
+
+      return response;
+    })
+    .catch(() => {
+      // العودة إلى صفحة التعامل مع حالات عدم الاتصال
+      if (request.mode === 'navigate') {
+        return caches.match('/offline.html');
+      }
+      // محاولة العودة إلى إصدار سابق من الطلب
+      return caches.match(request);
+    });
+}
+
+console.log('DeltaStars Service Worker loaded with advanced PWA features');
+<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100">
+  <rect width="100" height="100" fill="#1a56db"/>
+  <text x="50" y="55" text-anchor="middle" fill="white" font-size="20" font-family="Arial">ΔS</text>
+</svg>
+export const COMPANY_INFO = {
+  name: "شركة نجوم دلتا للتجارة",
+  name_en: "Delta Stars Trading Company",
+  slogan: "الرواد في تجارة واستيراد الخضروات والفواكه الطازجة وأفخر التمور والبيض في المملكة العربية السعودية",
+  slogan_en: "The pioneers in trading and importing fresh vegetables, fruits, premium dates, and eggs in the Kingdom of Saudi Arabia",
+  phone: "+966920023204",
+  whatsapp: "+966558828009",
+  email: "INFO@DELTASTARS-KSA.COM",
+  address_ar: "جدة، شارع المنار، المملكة العربية السعودية",
+  address_en: "Jeddah, Al-Manar Street, Saudi Arabia",
+  map_url: "https://maps.app.goo.gl/ED98cFHGW5UJYxjx7",
+  website: "https://deltastars-ksa.com/ar/",
+  vatRegistrationNumber: "311582826900003",
+  commercialRegistration: "4030457293",
+  bankAccounts: [
+    {
+      id: "main-account",
+      bankName: "البنك العربي",
+      bankName_en: "Al Arabi Bank",
+      branchName: "فرع الرحاب",
+      branchName_en: "Al Rahab Branch",
+      branchNumber: "0202",
+      accountName: "شركة نجوم دلتا للتجارة",
+      accountName_en: "Delta Stars Trading Company",
+      accountNumber: "0108095516770029",
+      iban: "SA4730400108095516770029",
+      idNumber: "4030457293",
+      currency: "SAR",
+      balance: 150000.00,
+      lastUpdated: new Date().toISOString()
+    }
+  ]
+};
+
+export const SOCIAL_LINKS = {
+  facebook: "https://www.facebook.com/share/1DNx4PiyLU/",
+  facebookGroup: "https://facebook.com/groups/814288629749436/?mibextid=rS40aB7S9Ucbxw6v",
+  instagram: "https://www.instagram.com/deltastars7?utm_source=qr&igsh=MWRkZW9qZzZzM3d4dA==",
+  telegram: "https://t.me/deltastars1",
+  youtube: "https://youtube.com/@deltastars1?si=4oAuDRgASyS4Hu_i",
+  snapchat: "https://www.snapchat.com/add/deltastars25?share_id=PN1go6zbu_A&locale=ar-EG",
+  tiktok: "https://vm.tiktok.com/ZSH7p6tYpvBof-1se5K/",
+  whatsappCommunity: "https://chat.whatsapp.com/J1mZCFjYprmFHveSyTjpMw?mode=ems_wa_t",
+  linktree: "https://linktr.ee/deltastar6"
+};
+export type Page = 'home' | 'products' | 'cart' | 'wishlist' | 'showroom' | 'login' | 'vipLogin' | 'dashboard' | 'vipDashboard' | 'productDetail' | 'privacy' | 'terms' | 'accounting';
+
+export type CategoryKey = 
+  | 'fruits' 
+  | 'vegetables' 
+  | 'dates' 
+  | 'eggs' 
+  | 'premium_fruits' 
+  | 'organic_vegetables' 
+  | 'special_packages';
+
+export interface Product {
+  id: number;
+  sku: string;
+  name_ar: string;
+  name_en: string;
+  description_ar: string;
+  description_en: string;
+  short_description_ar: string;
+  short_description_en: string;
+  unit_ar: string;
+  unit_en: string;
+  price: number;
+  original_price?: number;
+  category: CategoryKey;
+  subcategory?: string;
+  image: string;
+  images: string[];
+  stock_quantity: number;
+  min_order_quantity: number;
+  max_order_quantity?: number;
+  vat_rate: number;
+  is_featured: boolean;
+  is_new: boolean;
+  is_on_sale: boolean;
+  rating: number;
+  review_count: number;
+  created_at: string;
+  updated_at: string;
+  tags: string[];
+  origin: string;
+  packaging: string;
+  certifications?: string[];
+  season?: string;
+}
+
+export interface User {
+  id: string;
+  type: 'admin' | 'developer' | 'accountant' | 'vip';
+  email?: string;
+  phone?: string;
+  name?: string;
+  permissions: string[];
+}
+
+export interface CartItem extends Product {
+  quantity: number;
+}
+
+export interface Review {
+  id: string;
+  productId: number;
+  author: string;
+  rating: number;
+  comment: string;
+  date: string;
+}
+
+export interface ShowroomItem {
+  id: string;
+  title_ar: string;
+  title_en: string;
+  description_ar: string;
+  description_en: string;
+  image: string;
+  videoUrl?: string;
+  section_ar?: string;
+  section_en?: string;
+  link?: string;
+}
+
+export interface Invoice {
+  id: string;
+  invoiceNumber: string;
+  clientId: string;
+  clientName: string;
+  date: string;
+  dueDate: string;
+  items: InvoiceItem[];
+  subtotal: number;
+  vatAmount: number;
+  shippingCost: number;
+  totalAmount: number;
+  status: 'Draft' | 'Sent' | 'Paid' | 'PartiallyPaid' | 'Overdue' | 'Cancelled';
+  paymentMethod: 'Cash' | 'BankTransfer' | 'CreditCard' | 'Wallet';
+  paymentReference?: string;
+  notes?: string;
+  isVatIncluded: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface InvoiceItem {
+  id: string;
+  productId: number;
+  productName_ar: string;
+  productName_en: string;
+  quantity: number;
+  unitPrice: number;
+  vatAmount: number;
+  total: number;
+}
+
+export interface VipClient {
+  id: string;
+  companyNa

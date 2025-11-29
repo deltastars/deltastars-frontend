@@ -1,0 +1,440 @@
+DeltaStars-Store/
+├── 📄 README.md
+├── 📁 backend/
+│   ├── 📄 requirements.txt
+│   ├── 📄 manage.py
+│   ├── 📄 .env.example
+│   ├── 📁 core/
+│   │   ├── 📄 __init__.py
+│   │   ├── 📄 settings.py
+│   │   ├── 📄 urls.py
+│   │   └── 📄 wsgi.py
+│   └── 📁 apps/
+│       ├── 📁 accounts/
+│       │   ├── 📄 __init__.py
+│       │   ├── 📄 models.py
+│       │   ├── 📄 views.py
+│       │   ├── 📄 admin.py
+│       │   └── 📄 urls.py
+│       ├── 📁 products/
+│       │   ├── 📄 __init__.py
+│       │   ├── 📄 models.py
+│       │   ├── 📄 views.py
+│       │   ├── 📄 admin.py
+│       │   └── 📄 urls.py
+│       ├── 📁 orders/
+│       │   ├── 📄 __init__.py
+│       │   ├── 📄 models.py
+│       │   └── 📄 views.py
+│       ├── 📁 payments/
+│       │   ├── 📄 __init__.py
+│       │   ├── 📄 models.py
+│       │   └── 📄 views.py
+│       ├── 📁 dashboard/
+│       │   ├── 📄 __init__.py
+│       │   └── 📄 views.py
+│       └── 📁 ai_services/
+│           ├── 📄 __init__.py
+│           └── 📄 core.py
+├── 📁 frontend/
+│   ├── 📄 package.json
+│   ├── 📄 vite.config.js
+│   ├── 📁 public/
+│   │   └── 📄 index.html
+│   └── 📁 src/
+│       ├── 📄 main.jsx
+│       ├── 📄 App.jsx
+│       ├── 📄 i18n.js
+│       ├── 📁 components/
+│       │   ├── 📁 Header/
+│       │   │   └── 📄 Header.jsx
+│       │   └── 📁 Footer/
+│       │       └── 📄 Footer.jsx
+│       ├── 📁 pages/
+│       │   ├── 📁 Home/
+│       │   │   └── 📄 Home.jsx
+│       │   ├── 📁 Products/
+│       │   │   └── 📄 Products.jsx
+│       │   └── 📁 About/
+│       │       └── 📄 About.jsx
+│       └── 📁 store/
+│           └── 📄 store.js
+└── 📁 scripts/
+    ├── 📄 setup.sh
+    ├── 📄 deploy.sh
+    └── 📄 update.sh
+# 🎯 متجر نجوم دلتا - Delta Stars Store
+
+## 🌟 المميزات
+- متجر واحد بنظام عملاء معزول
+- واجهة عربية/إنجليزية كاملة
+- +200 منتج مع كشوفات مفصلة
+- تكامل مع البنك العربي
+- ذكاء اصطناعي متقدم
+- لوحة تحكم متعددة الأقسام
+
+## ⚡ التشغيل السريع
+\`\`\`bash
+chmod +x scripts/setup.sh
+./scripts/setup.sh
+\`\`\`
+
+## 🔗 الروابط
+- الموقع: http://localhost:8000
+- الإدارة: http://localhost:8000/admin
+- المستخدم: admin
+- كلمة المرور: admin123
+
+© Delta Stars 2024 - جميع الحقوق محفوظة
+
+#!/usr/bin/env python
+import os
+import sys
+
+if __name__ == '__main__':
+    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'core.settings')
+    try:
+        from django.core.management import execute_from_command_line
+    except ImportError as exc:
+        raise ImportError(
+            "Couldn't import Django. Are you sure it's installed?"
+        ) from exc
+    execute_from_command_line(sys.argv)
+import os
+from pathlib import Path
+from datetime import timedelta
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+SECRET_KEY = 'deltastars-secure-key-2024'
+DEBUG = True
+ALLOWED_HOSTS = ['*']
+
+LANGUAGES = [
+    ('ar', 'العربية'),
+    ('en', 'English'),
+]
+
+LANGUAGE_CODE = 'ar'
+USE_I18N = True
+USE_TZ = True
+TIME_ZONE = 'Asia/Riyadh'
+
+INSTALLED_APPS = [
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+    'rest_framework',
+    'corsheaders',
+    'apps.accounts',
+    'apps.products',
+    'apps.orders',
+    'apps.payments',
+    'apps.dashboard',
+    'apps.ai_services',
+]
+
+MIDDLEWARE = [
+    'django.middleware.security.SecurityMiddleware',
+    'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.middleware.common.CommonMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.messages.middleware.MessageMiddleware',
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+]
+
+ROOT_URLCONF = 'core.urls'
+
+TEMPLATES = [
+    {
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'DIRS': [],
+        'APP_DIRS': True,
+        'OPTIONS': {
+            'context_processors': [
+                'django.template.context_processors.debug',
+                'django.template.context_processors.request',
+                'django.contrib.auth.context_processors.auth',
+                'django.contrib.messages.context_processors.messages',
+            ],
+        },
+    },
+]
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
+    }
+}
+
+AUTH_PASSWORD_VALIDATORS = [
+    {
+        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+    },
+]
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ),
+}
+
+BANK_ACCOUNT = {
+    'bank_name': 'البنك العربي',
+    'account_number': '0108095516770029',
+    'iban': 'SA4730400108095516770029',
+    'company_name': 'شركة نجوم دلتا للتجارة',
+}
+
+STATIC_URL = '/static/'
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+from django.contrib import admin
+from django.urls import path, include
+from django.conf import settings
+from django.conf.urls.static import static
+
+urlpatterns = [
+    path('admin/', admin.site.urls),
+    path('api/accounts/', include('apps.accounts.urls')),
+    path('api/products/', include('apps.products.urls')),
+    path('api/orders/', include('apps.orders.urls')),
+    path('api/payments/', include('apps.payments.urls')),
+]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+from django.contrib.auth.models import AbstractUser
+from django.db import models
+
+class User(AbstractUser):
+    USER_ROLES = (
+        ('super_admin', 'المدير العام'),
+        ('admin', 'مدير'),
+        ('customer', 'عميل'),
+    )
+    
+    role = models.CharField(max_length=20, choices=USER_ROLES, default='customer')
+    phone = models.CharField(max_length=20, unique=True)
+    company_name = models.CharField(max_length=255, blank=True, null=True)
+    language = models.CharField(max_length=10, default='ar')
+    
+    def __str__(self):
+        return f"{self.username} - {self.get_role_display()}"
+
+class CustomerProfile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    balance = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    credit_limit = models.DecimalField(max_digits=12, decimal_places=2, default=1000)
+    price_list = models.JSONField(default=dict)
+    
+    def __str__(self):
+        return f"{self.user.get_full_name()}"
+from django.contrib import admin
+from .models import User, CustomerProfile
+
+@admin.register(User)
+class UserAdmin(admin.ModelAdmin):
+    list_display = ['username', 'email', 'phone', 'role', 'is_active']
+    list_filter = ['role', 'is_active']
+
+@admin.register(CustomerProfile)
+class CustomerProfileAdmin(admin.ModelAdmin):
+    list_display = ['user', 'balance', 'credit_limit']
+from django.db import models
+
+class Category(models.Model):
+    name_ar = models.CharField(max_length=255)
+    name_en = models.CharField(max_length=255)
+    image = models.ImageField(upload_to='categories/', null=True, blank=True)
+    is_active = models.BooleanField(default=True)
+    
+    def __str__(self):
+        return self.name_ar
+
+class Product(models.Model):
+    name_ar = models.CharField(max_length=255)
+    name_en = models.CharField(max_length=255)
+    description_ar = models.TextField()
+    description_en = models.TextField()
+    price = models.DecimalField(max_digits=10, decimal_places=2)
+    stock = models.IntegerField(default=0)
+    main_image = models.ImageField(upload_to='products/')
+    code = models.CharField(max_length=50, unique=True)
+    is_active = models.BooleanField(default=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    def __str__(self):
+        return self.name_ar
+import pandas as pd
+import numpy as np
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+
+class AIRecommendationEngine:
+    def __init__(self):
+        self.vectorizer = TfidfVectorizer(max_features=1000)
+        self.similarity_matrix = None
+        
+    def train_recommendation_model(self, products_data):
+        try:
+            product_texts = []
+            for product in products_data:
+                text = f"{product['name_ar']} {product['name_en']} {product['category']}"
+                product_texts.append(text)
+            
+            tfidf_matrix = self.vectorizer.fit_transform(product_texts)
+            self.similarity_matrix = cosine_similarity(tfidf_matrix, tfidf_matrix)
+            return True
+        except Exception as e:
+            print(f"Error training model: {e}")
+            return False
+
+class SentimentAnalyzer:
+    def analyze_review_sentiment(self, text):
+        positive_words = ['ممتاز', 'رائع', 'جميل', 'جيد', 'سريع']
+        negative_words = ['سيء', 'ضعيف', 'مخيب', 'بطيء', 'مشكلة']
+        
+        text_lower = text.lower()
+        positive_count = sum(1 for word in positive_words if word in text_lower)
+        negative_count = sum(1 for word in negative_words if word in text_lower)
+        
+        if positive_count > negative_count:
+            return 'positive', positive_count / (positive_count + negative_count + 1)
+        elif negative_count > positive_count:
+            return 'negative', negative_count / (positive_count + negative_count + 1)
+        else:
+            return 'neutral', 0.5
+
+recommendation_engine = AIRecommendationEngine()
+sentiment_analyzer = SentimentAnalyzer()
+{
+  "name": "deltastars-frontend",
+  "version": "1.0.0",
+  "description": "متجر نجوم دلتا - واجهة ثنائية اللغة",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.15.0",
+    "axios": "^1.5.0",
+    "i18next": "^22.5.0",
+    "react-i18next": "^12.3.0"
+  },
+  "devDependencies": {
+    "vite": "^4.4.9",
+    "@vitejs/plugin-react": "^4.0.4"
+  }
+}
+import React from 'react'
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import { I18nextProvider } from 'react-i18next'
+import i18n from './i18n'
+
+import Header from './components/Header/Header'
+import Footer from './components/Footer/Footer'
+import Home from './pages/Home/Home'
+import Products from './pages/Products/Products'
+import About from './pages/About/About'
+
+function App() {
+  return (
+    <I18nextProvider i18n={i18n}>
+      <Router>
+        <div className="App" dir={i18n.language === 'ar' ? 'rtl' : 'ltr'}>
+          <Header />
+          <main className="min-h-screen bg-gray-50">
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/products" element={<Products />} />
+              <Route path="/about" element={<About />} />
+            </Routes>
+          </main>
+          <Footer />
+        </div>
+      </Router>
+    </I18nextProvider>
+  )
+}
+
+export default App
+import React from 'react';
+import { useTranslation } from 'react-i18next';
+
+const Footer = () => {
+    const { i18n } = useTranslation();
+    
+    return (
+        <footer className="bg-green-900 text-white py-8 mt-12">
+            <div className="container mx-auto px-4 text-center">
+                <p className="text-lg font-semibold">
+                    {i18n.language === 'ar' ? 
+                        'حقوق الملكية لشركة نجوم دلتا للتجارة' : 
+                        'Property Rights of Delta Stars Trading Company'
+                    }
+                </p>
+                <p className="text-green-200 mt-2">
+                    © Delta Stars 2024 - {i18n.language === 'ar' ? 'جميع الحقوق محفوظة' : 'All rights reserved'}
+                </p>
+                <p className="text-green-300 text-sm mt-2">
+                    {i18n.language === 'ar' ? 
+                        'تم إنشاء المتجر بواسطة الفريق التقني للشركة' : 
+                        'Store developed by the company technical team'
+                    }
+                </p>
+            </div>
+        </footer>
+    );
+};
+
+export default Footer;
+#!/bin/bash
+
+echo "🚀 بدء إعداد متجر نجوم دلتا..."
+
+# التحقق من Python
+if ! command -v python3 &> /dev/null; then
+    echo "❌ Python 3 غير مثبت"
+    exit 1
+fi
+
+# إنشاء البيئة الافتراضية
+python3 -m venv venv
+source venv/bin/activate
+
+# تثبيت المتطلبات
+pip install -r backend/requirements.txt
+
+# تطبيق migrations
+cd backend
+python manage.py migrate
+
+# إنشاء مستخدم مدير
+echo "from django.contrib.auth import get_user_model; User = get_user_model(); User.objects.create_superuser('admin', 'admin@deltastars.com', 'admin123')" | python manage.py shell
+
+echo "✅ تم الانتهاء من الإعداد!"
+echo "🌐 تشغيل الخادم: python manage.py runserver"
+echo "👤 بيانات الدخول: admin / admin123"

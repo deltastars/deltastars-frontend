@@ -1,0 +1,196 @@
+
+import React, { useState } from 'react';
+import { User, Product, ShowroomItem, Page, PromotionalAd, CategoryKey, Invoice, Payment, VipClient, VipTransaction } from '../types';
+import { useI18n } from './lib/contexts/I18nContext';
+import { PencilIcon, TrashIcon, PlusIcon, SparklesIcon, ChartBarIcon, DeliveryIcon, FingerprintIcon, XIcon, PlayIcon, EyeIcon, ShoppingCartIcon } from './lib/Icons';
+import { AccountsView } from './AccountsView';
+import { OperationsView } from './OperationsView';
+import { WarehouseView } from './WarehouseView';
+import { SectionAuthModal } from './lib/SectionAuthModal';
+import { useToast } from './ToastContext';
+
+interface DashboardPageProps {
+  user: User | null;
+  products: Product[];
+  showroomItems: ShowroomItem[];
+  promotions: PromotionalAd[];
+  categoryOrder: string[];
+  onAddProduct: (p: Product) => Promise<Product>;
+  onUpdateProduct: (p: Product) => Promise<Product>;
+  onDeleteProduct: (id: number) => Promise<boolean>;
+  onSetShowroomItems: (items: ShowroomItem[]) => void;
+  onSetPromotions: (promos: PromotionalAd[]) => void;
+  onSetCategoryOrder: () => void;
+  onThemeChange: () => void;
+  currentTheme: any;
+  invoices: Invoice[];
+  payments: Payment[];
+  vipClients: VipClient[];
+  transactions: VipTransaction[];
+  onAddPayment: (p: Payment) => void;
+  onAddVipClient: (c: VipClient) => Promise<VipClient>;
+  onUpdateVipClient: (c: VipClient) => Promise<VipClient>;
+  onDeleteVipClient: (id: string) => Promise<boolean>;
+  setPage: (page: Page) => void;
+}
+
+export const DashboardPage: React.FC<DashboardPageProps> = (props) => {
+  const { t, language } = useI18n();
+  const { addToast } = useToast();
+  const [view, setView] = useState<string>('menu');
+  const [unlockedSections, setUnlockedSections] = useState<string[]>([]);
+  const [authModal, setAuthModal] = useState<any>(null);
+
+  if (!props.user) return <div className="text-center p-20 font-black text-red-600">ACCESS RESTRICTED</div>;
+
+  const handleSectionAccess = (section: string) => {
+    if (unlockedSections.includes(section)) {
+        setView(section);
+    } else {
+        setAuthModal(section);
+    }
+  };
+
+  const handleShare = (item: any) => {
+    const shareUrl = window.location.href;
+    if (navigator.share && shareUrl) {
+        navigator.share({
+            title: item.title_ar || item.name_ar || 'Delta Stars Enterprise',
+            text: language === 'ar' ? `اكتشف هذا العرض المميز من نجوم دلتا للتجارة` : `Check out this special offer from Delta Stars Trading`,
+            url: shareUrl
+        }).catch((err) => console.debug('Dashboard share failed:', err));
+    }
+  };
+
+  const DeveloperControl = () => (
+    <div className="space-y-12 animate-fade-in">
+        <div className="bg-slate-900 text-white p-12 rounded-[4rem] flex justify-between items-center border-b-8 border-secondary">
+            <div>
+                <h2 className="text-5xl font-black">إدارة النظام (Developer)</h2>
+                <p className="text-xl font-bold opacity-60">التحكم الكامل في المنتجات، المعرض، والعروض</p>
+            </div>
+            <button onClick={() => setView('menu')} className="bg-white/10 px-8 py-3 rounded-2xl font-black">&larr; عودة للمؤشر</button>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+            <div className="bg-white p-10 rounded-[3rem] shadow-xl border border-gray-100 flex flex-col">
+                <div className="flex justify-between items-center mb-8">
+                    <h3 className="text-2xl font-black">إدارة المنتجات</h3>
+                    <button className="p-3 bg-primary text-white rounded-full"><PlusIcon /></button>
+                </div>
+                <div className="flex-1 space-y-4 max-h-[500px] overflow-y-auto">
+                    {props.products.map(p => (
+                        <div key={p.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100 group">
+                            <div className="flex items-center gap-4">
+                                <img src={p.image} className="w-12 h-12 rounded-xl object-cover" />
+                                <p className="font-bold text-sm">{language === 'ar' ? p.name_ar : p.name_en}</p>
+                            </div>
+                            <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button className="p-2 text-blue-500"><PencilIcon /></button>
+                                <button className="p-2 text-red-500"><TrashIcon /></button>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+            <div className="bg-white p-10 rounded-[3rem] shadow-xl border border-gray-100 flex flex-col">
+                <div className="flex justify-between items-center mb-8">
+                    <h3 className="text-2xl font-black">صالة العرض (Clips)</h3>
+                    <button className="p-3 bg-primary text-white rounded-full"><PlusIcon /></button>
+                </div>
+                <div className="flex-1 space-y-4">
+                    {props.showroomItems.map(item => (
+                        <div key={item.id} className="relative group rounded-2xl overflow-hidden h-40">
+                            <img src={item.image} className="w-full h-full object-cover" />
+                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                <div className="flex gap-4">
+                                    <button className="bg-white p-3 rounded-full text-primary"><PencilIcon /></button>
+                                    <button className="bg-white p-3 rounded-full text-red-500"><TrashIcon /></button>
+                                    <button onClick={() => handleShare(item)} className="bg-secondary p-3 rounded-full text-white">🚀</button>
+                                </div>
+                            </div>
+                            <div className="absolute bottom-2 left-2 right-2 bg-white/10 backdrop-blur-md p-2 rounded-xl text-[10px] font-black text-white truncate">
+                                {item.title_ar}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+            <div className="bg-white p-10 rounded-[3rem] shadow-xl border border-gray-100 flex flex-col">
+                <div className="flex justify-between items-center mb-8">
+                    <h3 className="text-2xl font-black">العروض الترويجية</h3>
+                    <button className="p-3 bg-secondary text-white rounded-full"><PlusIcon /></button>
+                </div>
+                <div className="flex-1 space-y-6">
+                    {props.promotions.map(promo => (
+                        <div key={promo.id} className="bg-gray-50 p-6 rounded-3xl border-2 border-dashed border-gray-200 relative group">
+                            <h4 className="font-black text-lg mb-2">{promo.title_ar}</h4>
+                            <div className="flex gap-4">
+                                <button className="text-xs font-black text-primary underline">تعديل الإعلان</button>
+                                <button className="text-xs font-black text-red-500 underline">إيقاف العرض</button>
+                            </div>
+                            <button onClick={() => handleShare(promo)} className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity text-xl">🔗</button>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </div>
+    </div>
+  );
+
+  const renderView = () => {
+    switch (view) {
+        case 'warehouse': return <WarehouseView products={props.products} invoices={props.invoices} onUpdateStock={(id, qty) => props.onUpdateProduct({ ...props.products.find(p => p.id === id)!, stock_quantity: qty })} onBack={() => setView('menu')} />;
+        case 'operations': return <OperationsView onBack={() => setView('menu')} />;
+        case 'accounts': return <AccountsView onBack={() => setView('menu')} invoices={props.invoices} payments={props.payments} vipClients={props.vipClients} transactions={props.transactions} onAddPayment={props.onAddPayment} onAddVipClient={props.onAddVipClient} onUpdateVipClient={props.onUpdateVipClient} onDeleteVipClient={props.onDeleteVipClient} />;
+        case 'developer': return <DeveloperControl />;
+        default:
+            const dashboardItems = [
+                { id: 'warehouse', icon: '📦', color: 'bg-yellow-50 border-yellow-200 text-yellow-900', label: 'إدارة المستودعات الذكية' },
+                { id: 'operations', icon: '📡', color: 'bg-orange-50 border-orange-200 text-orange-900', label: 'رادار الأسطول واللوجستيات' },
+                { id: 'accounts', icon: '📈', color: 'bg-green-50 border-green-200 text-green-900', label: 'الإدارة المالية والمحاسبة' },
+                { id: 'developer', icon: '⚙️', color: 'bg-slate-50 border-slate-200 text-slate-900', label: 'التحكم الفني والمنتجات' }
+            ];
+            return (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-12 animate-fade-in">
+                    {dashboardItems.map(item => (
+                        <div key={item.id} onClick={() => handleSectionAccess(item.id)} className={`${item.color} p-20 rounded-[5rem] border-4 shadow-2xl hover:shadow-[0_40px_100px_rgba(0,0,0,0.1)] transition-all cursor-pointer group hover:-translate-y-4 flex flex-col items-center text-center relative overflow-hidden`}>
+                             <div className="absolute top-0 right-0 w-32 h-32 bg-white/20 rounded-bl-full group-hover:scale-150 transition-transform"></div>
+                             <div className="text-[10rem] mb-10 group-hover:scale-110 transition-transform">{item.icon}</div>
+                             <h3 className="text-4xl font-black mb-4 uppercase tracking-tighter">{item.label}</h3>
+                        </div>
+                    ))}
+                </div>
+            );
+    }
+  };
+
+  return (
+    <div className="container mx-auto px-4 py-20">
+      {authModal && (
+        <SectionAuthModal 
+            section={authModal} 
+            onUnlock={() => { setUnlockedSections([...unlockedSections, authModal]); setView(authModal); setAuthModal(null); }} 
+            onClose={() => setAuthModal(null)} 
+        />
+      )}
+      
+      <div className="bg-slate-900 text-white p-16 md:p-24 rounded-[6rem] shadow-2xl mb-24 relative overflow-hidden border-b-[40px] border-primary">
+        <div className="absolute top-0 right-0 w-[50rem] h-[50rem] bg-primary/10 rounded-bl-full blur-3xl animate-pulse"></div>
+        <div className="relative z-10 flex flex-col md:flex-row justify-between items-center gap-16">
+            <div className="animate-fade-in-right">
+                <h1 className="text-8xl md:text-9xl font-black text-white mb-10 tracking-tighter">Delta Enterprise</h1>
+                <p className="text-4xl text-gray-400 font-extrabold" dangerouslySetInnerHTML={{ __html: t('dashboard.welcome', { email: props.user && 'email' in props.user ? props.user.email : '' }) }} />
+            </div>
+            <div className="bg-primary text-white px-16 py-8 rounded-[4rem] font-black text-4xl shadow-[0_30px_70px_rgba(26,58,26,0.5)] border-4 border-primary-light uppercase tracking-widest flex items-center gap-6 animate-bounce-slow">
+                <FingerprintIcon className="w-14 h-14" /> SECURE ACCESS
+            </div>
+        </div>
+      </div>
+
+      {renderView()}
+    </div>
+  );
+};

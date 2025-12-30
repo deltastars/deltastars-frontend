@@ -1,0 +1,108 @@
+
+import React, { useState } from 'react';
+import { Product, Page } from '../types';
+import { ShoppingCartIcon, HeartIcon, StarIcon } from './lib/Icons';
+import { useI18n } from './lib/contexts/I18nContext';
+
+interface ProductCardProps {
+  product: Product;
+  onAddToCart: (product: Product, quantity: number) => void;
+  toggleWishlist: (product: Product) => void;
+  isInWishlist: boolean;
+  setPage: (page: Page, productId?: number) => void;
+  rating?: { average: number; count: number };
+  onViewReviews?: () => void;
+}
+
+export const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart, toggleWishlist, isInWishlist, setPage, rating, onViewReviews }) => {
+  const { t, language, formatCurrency } = useI18n();
+  const [quantity, setQuantity] = useState(1);
+  const [imgError, setImgError] = useState(false);
+
+  const productName = language === 'ar' ? product.name_ar : product.name_en;
+  const productUnit = language === 'ar' ? product.unit_ar : product.unit_en;
+  
+  const handleCardClick = () => {
+    setPage('productDetail', product.id);
+  };
+
+  const fallbackImg = "https://images.unsplash.com/photo-1610348725531-843dff563e2c?q=80&w=500&auto=format&fit=crop";
+
+  return (
+    <div className="bg-white rounded-[2rem] shadow-md hover:shadow-2xl transition-all duration-500 overflow-hidden flex flex-col group border border-gray-100">
+      <div className="relative overflow-hidden cursor-pointer aspect-square" onClick={handleCardClick}>
+        <img 
+          src={imgError ? fallbackImg : product.image} 
+          alt={productName} 
+          onError={() => setImgError(true)}
+          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 bg-gray-50" 
+        />
+        {product.original_price && (
+           <div className="absolute top-4 left-4 bg-secondary text-white text-sm font-black px-4 py-1 rounded-full shadow-lg">
+             {t('product.discount')}
+           </div>
+        )}
+      </div>
+      <div className="p-6 flex flex-col flex-grow">
+        <span className="text-xs text-primary font-black mb-1 opacity-60 uppercase tracking-widest">{t(`categories.${product.category}`)}</span>
+        <h3 className="text-xl font-black text-black mb-2 flex-grow cursor-pointer line-clamp-2" onClick={handleCardClick}>{productName}</h3>
+        
+        {rating && rating.count > 0 && (
+          <div 
+            className="flex items-center gap-1 mb-4 cursor-pointer group/rating" 
+            onClick={onViewReviews}
+            title={t('reviews.view')}
+          >
+            {[...Array(5)].map((_, i) => (
+              <StarIcon key={i} className="w-4 h-4" filled={i < rating.average} />
+            ))}
+            <span className="text-xs text-gray-500 font-bold group-hover/rating:text-primary transition-colors">
+              {t('reviews.reviewsCount', { count: rating.count })}
+            </span>
+          </div>
+        )}
+        
+        <div className="flex items-center justify-between mb-4">
+            <p className="text-sm text-gray-400 font-bold">{t('product.unit')}: <span className="text-black font-black">{productUnit}</span></p>
+            <div className="flex items-center gap-2 bg-gray-50 rounded-xl p-1 border border-gray-200">
+                <button 
+                  onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                  className="w-8 h-8 flex items-center justify-center hover:bg-white rounded-lg font-black text-primary transition-all"
+                >-</button>
+                <span className="w-8 text-center font-black text-sm">{quantity}</span>
+                <button 
+                  onClick={() => setQuantity(quantity + 1)}
+                  className="w-8 h-8 flex items-center justify-center hover:bg-white rounded-lg font-black text-primary transition-all"
+                >+</button>
+            </div>
+        </div>
+        
+        <div className="flex justify-between items-center mt-auto pt-4 border-t border-gray-50">
+          <div className="flex flex-col">
+            <span className="text-2xl font-black text-primary">{formatCurrency(product.price)}</span>
+            {product.original_price && (
+              <span className="text-xs text-gray-400 line-through font-bold">{formatCurrency(product.original_price)}</span>
+            )}
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => toggleWishlist(product)}
+              className={`p-3 rounded-2xl transition-all duration-300 ${
+                isInWishlist ? 'text-red-500 bg-red-50' : 'text-gray-300 bg-gray-50 hover:text-red-500'
+              }`}
+            >
+              <HeartIcon filled={isInWishlist} className="w-6 h-6" />
+            </button>
+            <button 
+              onClick={() => { onAddToCart(product, quantity); setQuantity(1); }}
+              className="bg-primary text-white p-4 rounded-2xl hover:bg-primary-light transition-all shadow-xl hover:scale-105 active:scale-95"
+              aria-label={t('product.addToCart')}
+            >
+              <ShoppingCartIcon className="w-6 h-6" />
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};

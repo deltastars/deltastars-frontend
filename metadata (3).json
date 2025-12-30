@@ -1,0 +1,10 @@
+
+{
+  "name": "متجر نجوم دلتا للتجارة",
+  "description": "الحل المتكامل لتوريد الخضروات والفواكه والتمور بأحدث تقنيات التتبع والواقع المعزز.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone",
+    "geolocation"
+  ]
+}

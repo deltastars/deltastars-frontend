@@ -1,0 +1,78 @@
+
+import React, { useState } from 'react';
+import { useI18n } from './lib/contexts/I18nContext';
+import { useToast } from './ToastContext';
+import { User, Product, VipTransaction, Invoice, Page } from '../types';
+import { COMPANY_INFO } from './constants';
+import { PrintIcon, LocationMarkerIcon, DocumentTextIcon, ChartBarIcon } from './lib/Icons';
+
+interface VipDashboardPageProps {
+  user: User | null;
+  onLogout: () => void;
+  products: Product[];
+  addToCart: (p: Product, q: number) => void;
+  invoices: Invoice[];
+  transactions: VipTransaction[];
+  setPage: (page: Page) => void;
+}
+
+export const VipDashboardPage: React.FC<VipDashboardPageProps> = ({ user, onLogout, invoices, transactions }) => {
+    const { language, formatCurrency } = useI18n();
+
+    if (!user || user.type !== 'vip') return <div className="p-20 text-center font-black">Access Denied</div>;
+
+    return (
+        <div className="container mx-auto px-4 py-16 animate-fade-in">
+            <div className="bg-white p-12 rounded-[4rem] shadow-2xl mb-12 flex flex-col md:flex-row justify-between items-center gap-8 border-b-[20px] border-primary">
+                <div>
+                    <h1 className="text-5xl font-black text-primary mb-2">{user.name}</h1>
+                    <p className="text-xl font-bold text-gray-500">{language === 'ar' ? 'بوابة شركاء دلتا ستارز' : 'Delta Stars Partners Portal'}</p>
+                </div>
+                <button onClick={onLogout} className="bg-red-50 text-red-600 px-10 py-4 rounded-2xl font-black hover:bg-red-100 transition-all">
+                    {language === 'ar' ? 'تسجيل الخروج' : 'Logout'}
+                </button>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+                <div className="lg:col-span-2 bg-white p-10 rounded-[3rem] shadow-xl">
+                    <h3 className="text-2xl font-black mb-8 flex items-center gap-4">
+                        <ChartBarIcon className="w-8 h-8 text-primary" />
+                        {language === 'ar' ? 'كشف الحساب الجاري' : 'Current Ledger'}
+                    </h3>
+                    <div className="space-y-6">
+                        {transactions.map(trn => (
+                            <div key={trn.id} className="flex justify-between items-center p-6 border rounded-2xl hover:bg-gray-50">
+                                <div>
+                                    <p className="font-black">{language === 'ar' ? trn.description_ar : trn.description_en}</p>
+                                    <p className="text-xs text-gray-400 font-bold">{trn.date}</p>
+                                </div>
+                                <div className="text-right">
+                                    <p className={`font-black ${trn.debit > 0 ? 'text-red-500' : 'text-green-500'}`}>
+                                        {trn.debit > 0 ? `-${formatCurrency(trn.debit)}` : `+${formatCurrency(trn.credit)}`}
+                                    </p>
+                                    <p className="text-xs font-bold opacity-50">{language === 'ar' ? 'الرصيد' : 'Balance'}: {formatCurrency(trn.balance)}</p>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                <div className="bg-primary text-white p-10 rounded-[3rem] shadow-2xl h-fit">
+                    <h3 className="text-2xl font-black mb-6">{language === 'ar' ? 'معلومات الحساب' : 'Account Details'}</h3>
+                    <div className="space-y-6 opacity-90 font-bold">
+                        <div>
+                            <p className="text-xs uppercase tracking-widest mb-1">{language === 'ar' ? 'حد الائتمان' : 'Credit Limit'}</p>
+                            <p className="text-3xl font-black">{formatCurrency(user.creditLimit || 0)}</p>
+                        </div>
+                        <div className="pt-6 border-t border-white/20">
+                            <p className="text-xs uppercase tracking-widest mb-2">{language === 'ar' ? 'الدعم المباشر' : 'Direct Support'}</p>
+                            <a href={`https://wa.me/${COMPANY_INFO.whatsapp}`} className="flex items-center gap-3 bg-white/10 p-4 rounded-2xl hover:bg-white/20 transition-all">
+                                📱 {COMPANY_INFO.whatsapp}
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};

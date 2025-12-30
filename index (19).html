@@ -1,0 +1,100 @@
+
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" href="https://lh3.googleusercontent.com/d/1-0qvsPmpVVnWdGJHrlJ4rbtecG-i5n4l" />
+    <link rel="apple-touch-icon" href="https://lh3.googleusercontent.com/d/1-0qvsPmpVVnWdGJHrlJ4rbtecG-i5n4l" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>متجر نجوم دلتا | Delta Stars Store</title>
+    <meta name="theme-color" content="#1a3a1a" />
+    <link rel="manifest" href="/manifest.json" />
+
+    <!-- AR Support (Google Model Viewer) -->
+    <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js"></script>
+
+    <!-- SEO & Metadata -->
+    <meta name="description" content="متجر نجوم دلتا للتجارة - الحل المتكامل لتوريد الخضروات والفواكه والتمور بأحدث تقنيات الواقع المعزز والتتبع الذكي." />
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      :root {
+        --color-primary-default: #1a3a1a;
+        --color-primary-light: #2d5c2d;
+        --color-primary-dark: #0d1f0d;
+        --font-family-base: 'Cairo', sans-serif;
+      }
+
+      body {
+        font-family: var(--font-family-base);
+        background-color: #f8fafc;
+        -webkit-tap-highlight-color: transparent;
+      }
+      
+      /* Smooth Dynamic Transitions */
+      .page-transition { transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+      
+      /* AR Button Styling */
+      .ar-button {
+        background-color: white;
+        border-radius: 12px;
+        border: none;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 16px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        font-weight: 800;
+        cursor: pointer;
+      }
+
+      ::-webkit-scrollbar { width: 8px; }
+      ::-webkit-scrollbar-track { background: #f1f1f1; }
+      ::-webkit-scrollbar-thumb { background: var(--color-primary-default); border-radius: 10px; }
+    </style>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              primary: { DEFAULT: '#1a3a1a', light: '#2d5c2d', dark: '#0d1f0d' },
+              secondary: '#FF922B',
+            },
+            animation: {
+              'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+            }
+          },
+        },
+      }
+    </script>
+  <script type="importmap">
+{
+  "imports": {
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "@google/genai": "https://esm.sh/@google/genai"
+  }
+}
+</script>
+</head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+    <script>
+      // Register Service Worker for PWA
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/service-worker.js')
+            .then(reg => console.log('SW Registered'))
+            .catch(err => console.log('SW Registration Failed', err));
+        });
+      }
+    </script>
+  </body>
+</html>

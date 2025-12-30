@@ -1,0 +1,183 @@
+
+import React, { useState, useEffect, useMemo } from 'react';
+import { useI18n } from './lib/contexts/I18nContext';
+import { DeliveryAgent, Order } from '../types';
+import { useToast } from './ToastContext';
+import { PhoneIcon, DeliveryIcon, PlusIcon, TrashIcon, UserIcon, XIcon, StarIcon, ChartBarIcon, SparklesIcon, PencilIcon } from './lib/Icons';
+
+// أيقونة رادار مخصصة مع حركة نبض متطورة
+const RadarPulse = () => (
+    <span className="relative flex h-3 w-3">
+        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary opacity-75"></span>
+        <span className="relative inline-flex rounded-full h-3 w-3 bg-secondary"></span>
+    </span>
+);
+
+export const OperationsView: React.FC<{ onBack: () => void }> = ({ onBack }) => {
+    const { language } = useI18n();
+    const { addToast } = useToast();
+    
+    // بيانات المناديب الحقيقية - يتم حفظها في localStorage لضمان الاستمرارية
+    const [agents, setAgents] = useState<DeliveryAgent[]>(() => {
+        const saved = localStorage.getItem('delta-fleet-data');
+        return saved ? JSON.parse(saved) : [
+            { id: 'DS-001', name: 'كابتن محمد السعدي', phone: '0551234567', vehicle_type: 'truck', status: 'delivering', rating: 4.9, completed_orders: 1240, location: { lat: 21.5424, lng: 39.2201 } },
+            { id: 'DS-002', name: 'كابتن فهد العتيبي', phone: '0557654321', vehicle_type: 'car', status: 'online', rating: 5.0, completed_orders: 850, location: { lat: 21.5624, lng: 39.2401 } }
+        ];
+    });
+
+    const [showAgentForm, setShowAgentForm] = useState(false);
+    const [editingAgent, setEditingAgent] = useState<DeliveryAgent | null>(null);
+
+    // محاكاة حركة GPS اللحظية للمناديب (Real-time tracking simulation)
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setAgents(prev => prev.map(agent => ({
+                ...agent,
+                location: {
+                    lat: agent.location.lat + (Math.random() - 0.5) * 0.001,
+                    lng: agent.location.lng + (Math.random() - 0.5) * 0.001
+                }
+            })));
+        }, 3000);
+        return () => clearInterval(interval);
+    }, []);
+
+    useEffect(() => {
+        localStorage.setItem('delta-fleet-data', JSON.stringify(agents));
+    }, [agents]);
+
+    const handleAddAgent = (e: React.FormEvent) => {
+        e.preventDefault();
+        const formData = new FormData(e.target as HTMLFormElement);
+        const newAgent: DeliveryAgent = {
+            id: editingAgent?.id || `DS-${Date.now()}`,
+            name: formData.get('name') as string,
+            phone: formData.get('phone') as string,
+            vehicle_type: formData.get('vehicle') as any,
+            status: 'online',
+            rating: 5.0,
+            completed_orders: editingAgent?.completed_orders || 0,
+            location: { lat: 21.5, lng: 39.2 }
+        };
+
+        if (editingAgent) {
+            setAgents(agents.map(a => a.id === editingAgent.id ? newAgent : a));
+            addToast('تم تحديث بيانات المندوب بنجاح', 'success');
+        } else {
+            setAgents([...agents, newAgent]);
+            addToast('تم إضافة مندوب جديد للأسطول', 'success');
+        }
+        setShowAgentForm(false);
+        setEditingAgent(null);
+    };
+
+    return (
+        <div className="min-h-screen bg-slate-950 text-white rounded-[4rem] p-8 md:p-12 flex flex-col gap-10 shadow-2xl border border-white/5 overflow-hidden">
+            {/* Header Area */}
+            <div className="flex flex-col md:flex-row justify-between items-center gap-6 bg-white/5 p-8 rounded-[3rem] border border-white/10 backdrop-blur-xl">
+                <div className="flex items-center gap-6">
+                    <div className="w-20 h-20 bg-primary/20 rounded-full flex items-center justify-center border-2 border-primary animate-pulse">
+                        <DeliveryIcon className="w-10 h-10 text-primary" />
+                    </div>
+                    <div>
+                        <h2 className="text-4xl font-black uppercase tracking-tighter">Delta Fleet Control</h2>
+                        <p className="text-primary-light font-bold">نظام الرادار اللوجستي وتتبع الأسطول الموحد</p>
+                    </div>
+                </div>
+                <div className="flex gap-4">
+                    <button onClick={() => { setEditingAgent(null); setShowAgentForm(true); }} className="bg-primary hover:bg-primary-light px-8 py-4 rounded-2xl font-black shadow-xl transition-all flex items-center gap-2">
+                        <PlusIcon /> {language === 'ar' ? 'إضافة مندوب حقيقي' : 'Deploy Driver'}
+                    </button>
+                    <button onClick={onBack} className="bg-white/10 p-4 rounded-2xl hover:bg-red-500 transition-all"><XIcon /></button>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 flex-1 h-[600px]">
+                {/* Left: Active Map (Simulation) */}
+                <div className="lg:col-span-8 relative bg-slate-900 rounded-[3.5rem] border-2 border-white/5 overflow-hidden group">
+                    <div className="absolute inset-0 opacity-20 grayscale invert bg-[url('https://www.google.com/maps/vt/pb=!1m4!1m3!1i12!2i2395!3i1608!2m3!1e0!2sm!3i633055999!3m8!2sar!3ssa!5e1105!12m4!1e68!2m2!1sset!2sRoadmap!4e0!5m1!1e0!23i4111425')] bg-cover"></div>
+                    
+                    {/* Driver Markers */}
+                    {agents.map(agent => (
+                        <div 
+                            key={agent.id} 
+                            className="absolute transition-all duration-[3000ms] ease-linear z-20 cursor-pointer"
+                            style={{ 
+                                top: `${((agent.location.lat - 21.4) * 1000) % 100}%`, 
+                                left: `${((agent.location.lng - 39.1) * 800) % 100}%` 
+                            }}
+                        >
+                            <div className="relative group/marker">
+                                <div className={`w-12 h-12 rounded-full border-4 border-white/20 flex items-center justify-center shadow-2xl ${agent.status === 'delivering' ? 'bg-orange-500' : 'bg-green-500'}`}>
+                                    <span className="text-xl">{agent.vehicle_type === 'truck' ? '🚛' : '🚗'}</span>
+                                </div>
+                                <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-black/80 px-3 py-1 rounded-full text-[10px] font-black whitespace-nowrap opacity-0 group-hover/marker:opacity-100 transition-opacity">
+                                    {agent.name}
+                                </div>
+                                <div className="absolute -inset-4 bg-primary/20 rounded-full animate-ping opacity-20"></div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+
+                {/* Right: Management List */}
+                <div className="lg:col-span-4 flex flex-col gap-6">
+                    <div className="bg-white/5 rounded-[3rem] p-8 border border-white/10 flex-1 overflow-y-auto custom-scrollbar">
+                        <h3 className="text-xl font-black mb-6 flex items-center gap-3">
+                            <SparklesIcon className="text-secondary" /> إدارة الطاقم النشط
+                        </h3>
+                        <div className="space-y-4">
+                            {agents.map(agent => (
+                                <div key={agent.id} className="p-5 rounded-3xl bg-white/5 border border-white/5 hover:bg-white/10 transition-all flex justify-between items-center group">
+                                    <div className="flex items-center gap-4">
+                                        <div className="text-3xl">{agent.vehicle_type === 'truck' ? '🚛' : '🚗'}</div>
+                                        <div>
+                                            <p className="font-black text-sm">{agent.name}</p>
+                                            <p className="text-[10px] opacity-40 font-mono tracking-wider">{agent.phone}</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button onClick={() => { setEditingAgent(agent); setShowAgentForm(true); }} className="p-2 bg-blue-500/20 text-blue-400 rounded-xl"><PencilIcon /></button>
+                                        <button onClick={() => setAgents(agents.filter(a => a.id !== agent.id))} className="p-2 bg-red-500/20 text-red-400 rounded-xl"><TrashIcon /></button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Agent Form Modal */}
+            {showAgentForm && (
+                <div className="fixed inset-0 bg-black/90 z-[500] flex justify-center items-center p-4 backdrop-blur-xl animate-fade-in">
+                    <div className="bg-slate-900 p-12 rounded-[4rem] w-full max-w-lg border border-white/10 shadow-2xl">
+                        <h3 className="text-2xl font-black mb-10 text-center uppercase tracking-tighter">تحديث بيانات الطاقم اللوجستي</h3>
+                        <form onSubmit={handleAddAgent} className="space-y-6">
+                            <div>
+                                <label className="block text-xs font-black text-gray-500 mb-2">اسم المندوب الرباعي</label>
+                                <input name="name" type="text" defaultValue={editingAgent?.name} className="w-full p-5 bg-white/5 border-2 border-white/10 rounded-2xl font-black outline-none focus:border-primary text-white" required />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-black text-gray-500 mb-2">رقم الجوال الفعلي</label>
+                                <input name="phone" type="tel" defaultValue={editingAgent?.phone} className="w-full p-5 bg-white/5 border-2 border-white/10 rounded-2xl font-black outline-none focus:border-primary text-white" required />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-black text-gray-500 mb-2">نوع المركبة</label>
+                                <select name="vehicle" defaultValue={editingAgent?.vehicle_type} className="w-full p-5 bg-white/5 border-2 border-white/10 rounded-2xl font-black outline-none focus:border-primary text-white bg-slate-900">
+                                    <option value="truck">شاحنة تبريد (جامبو)</option>
+                                    <option value="car">سيارة توصيل سريعة</option>
+                                    <option value="bike">دراجة نارية (طرود)</option>
+                                </select>
+                            </div>
+                            <div className="flex gap-4 pt-6">
+                                <button type="submit" className="flex-1 bg-primary text-white py-5 rounded-2xl font-black text-xl shadow-xl hover:scale-105 transition-all">حفظ واعتماد</button>
+                                <button type="button" onClick={() => setShowAgentForm(false)} className="px-8 bg-white/5 text-gray-400 font-black rounded-2xl">إلغاء</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};

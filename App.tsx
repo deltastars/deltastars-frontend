@@ -1,5 +1,6 @@
 
 import React, { useState, useCallback, useEffect } from 'react';
+import { Analytics } from '@vercel/analytics/react';
 import { Header } from './lib/Header';
 import { Footer } from './Footer';
 import { Home } from './lib/Home';
@@ -663,6 +664,7 @@ function MainApp() {
         browsingHistory={browsingHistory}
         purchaseHistory={purchaseHistory}
       />}
+      <Analytics />
     </div>
   );
 }

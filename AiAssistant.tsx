@@ -1,15 +1,9 @@
 
-
-
-
-
-
 import React, { useState, useEffect, useRef } from 'react';
-import { useI18n, useGeminiAi } from '../contexts/I18nContext';
+import { useI18n, useGeminiAi } from './lib/contexts/I18nContext';
 import { Product, ChatMessage, CartItem } from '../types';
-import { COMPANY_INFO } from '../constants';
-import { SparklesIcon, XIcon } from './lib/Icons';
-import type { Chat } from '@google/genai';
+import { COMPANY_INFO, PARTNERS_LIST } from './constants';
+import { SparklesIcon, XIcon } from './lib/contexts/Icons';
 
 interface AiAssistantProps {
   products: Product[];
@@ -18,146 +12,117 @@ interface AiAssistantProps {
   purchaseHistory: CartItem[];
 }
 
-const TypingIndicator: React.FC = () => {
-    const { t } = useI18n();
-    return (
-        <div className="flex items-center gap-2">
-            <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
-            <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
-            <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce"></div>
-            <span className="text-sm text-gray-500 font-medium">{t('aiAssistant.thinking')}</span>
-        </div>
-    );
-};
+const TypingIndicator: React.FC = () => (
+    <div className="flex items-center gap-3 p-3 bg-white/80 rounded-2xl w-fit shadow-sm border border-gray-100">
+        <div className="w-2 h-2 bg-primary rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+        <div className="w-2 h-2 bg-primary rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+        <div className="w-2 h-2 bg-primary rounded-full animate-bounce"></div>
+        <span className="text-xs text-gray-400 font-black uppercase tracking-widest">Oday Processing...</span>
+    </div>
+);
 
-export const AiAssistant: React.FC<AiAssistantProps> = ({ products, onClose, browsingHistory, purchaseHistory }) => {
+export const AiAssistant: React.FC<AiAssistantProps> = ({ products, onClose }) => {
   const { t, language } = useI18n();
   const { ai, status } = useGeminiAi();
   
-  const [messages, setMessages] = useState<ChatMessage[]>(() => [
-    { role: 'model', text: t('aiAssistant.welcomeMessage') }
-  ]);
-
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const chatRef = useRef<Chat | null>(null);
+  const chatRef = useRef<any>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
-  const scrollToBottom = () => {
+  useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-
-  useEffect(scrollToBottom, [messages]);
+  }, [messages]);
   
-  // Update welcome message if language changes
   useEffect(() => {
-    setMessages(msgs => {
-        if (msgs.length === 1) {
-            return [{ role: 'model', text: t('aiAssistant.welcomeMessage') }];
-        }
-        return msgs;
-    });
-  }, [t]);
+    const welcome = language === 'ar' ? 
+        'يا هلا والله بك في نجوم دلتا للتجارة! أنا "عُدي"، مساعدك الرقمي الذكي. أسطولنا الحين في وضع الجاهزية التامة لتوريد طلباتكم.. وش اللي بخاطرك اليوم؟ 🍎🚚' : 
+        'Welcome to Delta Stars Trading! I am "Oday", your smart AI agent. Our logistics fleet is ready to supply your orders. How can I assist you today?';
+    
+    setMessages([{ role: 'model', text: welcome }]);
 
-  // Initialize chat session
-  useEffect(() => {
     if (ai && status === 'ready') {
-      const productContext = JSON.stringify(products.map(p => ({
-        id: p.id,
-        name_ar: p.name_ar,
-        name_en: p.name_en,
-        category: p.category,
-        price: p.price,
-        unit_ar: p.unit_ar,
-        unit_en: p.unit_en,
-      })));
+      const productContext = products.map(p => `${language === 'ar' ? p.name_ar : p.name_en}: ${p.price} SAR`).join(', ');
 
-      const browsingHistoryContext = JSON.stringify(browsingHistory.map(p => ({ id: p.id, name: language === 'ar' ? p.name_ar : p.name_en })));
-      const purchaseHistoryContext = JSON.stringify(purchaseHistory.map(p => ({ id: p.id, name: language === 'ar' ? p.name_ar : p.name_en, quantity: p.quantity })));
-
-      const shippingPolicy = `
-- ${t('shipping.policyTitle')}:
-- ${t('shipping.deliveryTimeJeddah')}
-- ${t('shipping.deliveryTimeOther')}
-- ${t('shipping.cost')}
-- ${t('shipping.freeShippingThreshold')}`;
-
-
-      const systemInstruction = `You are 'Nibras' (نبراس), a friendly and helpful AI shopping assistant for Delta Stars Store. Delta Stars is a specialized Saudi Arabian company that imports and trades fresh vegetables, fruits, dates, and eggs.
-
-Your role is to:
-1.  Answer customer questions about products using ONLY the provided product list.
-2.  Provide recommendations based on customer requests (e.g., "suggest some sweet fruits").
-3.  Give information about the company (e.g., contact details, address).
-4.  Be polite, concise, and helpful.
-5.  Always respond in the language of the user's query (Arabic or English).
-
-NEW CAPABILITIES:
-1. Personalized Recommendations: You can now provide recommendations based on the user's browsing and purchase history. Use this data to suggest relevant products. For example, if a user asks for recommendations, check their history and suggest similar or complementary items.
-2. Shipping Information: You can answer questions about shipping and delivery based on the policy provided below.
-
-USER CONTEXT (Use this for personalized recommendations):
-- Recently Viewed Products: ${browsingHistoryContext}
-- Past Purchases: ${purchaseHistoryContext}
-
-SHIPPING & DELIVERY POLICY (Use this to answer shipping questions):
-${shippingPolicy}
-
-Here is the list of available products in JSON format. Do not invent products, prices, or details not present in this list.
-${productContext}
-
-If you cannot answer a question or if the user wants to place an order, politely suggest they contact customer service via WhatsApp at ${COMPANY_INFO.whatsapp} or by phone at ${COMPANY_INFO.phone}.`;
-
+      const systemInstruction = language === 'ar' ? 
+      `أنت "عُدي" (Oday)، المساعد الذكي الرسمي لشركة نجوم دلتا للتجارة في السعودية. تحدث بلهجة سعودية بيضاء محترمة ومرحبة.
+       نحن نورد الخضروات والفواكه والتمور الفاخرة لكبار الفنادق والشركات مثل: ${PARTNERS_LIST.join(', ')}.
+       هدفنا: المعايير العالمية، الجودة الفائقة، التوصيل السريع بأسطول مبرد.
+       قائمة الأسعار المتاحة: ${productContext}.
+       إذا سأل العميل عن الأسعار، كن دقيقاً جداً. شجع الشركات على التسجيل في بوابة VIP للحصول على أسعار الجملة وتسهيلات الدفع.` : 
+      `You are "Oday", the official smart assistant for Delta Stars Trading Co. in Saudi Arabia. 
+       Speak in a professional, friendly, and helpful tone.
+       We supply premium produce to elite partners like: ${PARTNERS_LIST.join(', ')}.
+       Our values: Global standards, extreme freshness, and rapid refrigerated logistics.
+       Inventory Data: ${productContext}.
+       Provide precise pricing. Always encourage B2B clients to join the VIP Portal for credit limits and bulk rates.`;
 
       chatRef.current = ai.chats.create({
-        model: 'gemini-2.5-flash',
-        config: { systemInstruction },
-        history: [{
-          role: 'user',
-          parts: [{ text: 'Hello' }]
-        }, {
-          role: 'model',
-          parts: [{ text: t('aiAssistant.welcomeMessage') }]
-        }],
+        model: 'gemini-3-flash-preview',
+        config: { systemInstruction, temperature: 0.7 },
       });
     }
-  }, [ai, products, status, t, browsingHistory, purchaseHistory, language]);
-
+  }, [ai, products, status, language]);
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    const userMessage = input.trim();
-    if (!userMessage || isLoading) return;
+    const msg = input.trim();
+    if (!msg || isLoading) return;
 
-    setMessages(prev => [...prev, { role: 'user', text: userMessage }]);
+    setMessages(prev => [...prev, { role: 'user', text: msg }]);
     setInput('');
     setIsLoading(true);
 
     try {
-      if (!chatRef.current) {
-        throw new Error("Chat not initialized");
-      }
-      const result = await chatRef.current.sendMessage({ message: userMessage });
-      const modelResponse = result.text;
-      setMessages(prev => [...prev, { role: 'model', text: modelResponse }]);
+      if (!chatRef.current) throw new Error("Oday Engine Offline");
+      const result = await chatRef.current.sendMessage({ message: msg });
+      setMessages(prev => [...prev, { role: 'model', text: result.text || '' }]);
     } catch (error) {
-      console.error("AI Assistant Error:", error);
-      setMessages(prev => [...prev, { role: 'model', text: t('aiAssistant.error') }]);
+      setMessages(prev => [...prev, { role: 'model', text: language === 'ar' ? 'عذراً، يبدو أن هناك ضغط على أنظمة التوريد، تقدر تحاول ثانية؟' : 'Sorry, the supply systems are under high load, please try again.' }]);
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className={`fixed bottom-6 ${language === 'ar' ? 'left-6' : 'right-6'} z-50 w-[90vw] max-w-md h-[70vh] max-h-[600px] bg-white rounded-lg shadow-2xl flex flex-col overflow-hidden transition-all duration-300`}>
-      {/* Header */}
-      <header className="bg-primary text-white p-4 flex justify-between items-center shadow-md">
-        <h3 className="text-lg font-bold">{t('aiAssistant.title')}</h3>
-        <button onClick={onClose} aria-label="Close chat">
-          <XIcon />
-        </button>
+    <div className={`fixed bottom-24 ${language === 'ar' ? 'left-8' : 'right-8'} z-[400] w-[95vw] max-w-xl h-[75vh] bg-white rounded-[4rem] shadow-[0_50px_150px_rgba(0,0,0,0.3)] flex flex-col overflow-hidden border-4 border-primary/10 animate-fade-in-up`} dir={language === 'ar' ? 'rtl' : 'ltr'}>
+      <header className="bg-primary text-white p-10 flex justify-between items-center relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent opacity-20 animate-pulse"></div>
+        <div className="flex items-center gap-6 relative z-10">
+            <div className="w-20 h-20 bg-white/20 rounded-[2rem] flex items-center justify-center text-5xl shadow-inner border border-white/20">👨‍🌾</div>
+            <div>
+                <h3 className="text-3xl font-black tracking-tight">عُدي (Oday)</h3>
+                <p className="text-[11px] font-bold text-secondary uppercase tracking-[0.3em]">Delta Smart Logistics Agent</p>
+            </div>
+        </div>
+        <button onClick={onClose} className="hover:bg-red-500 hover:rotate-90 p-4 rounded-full transition-all relative z-10 bg-white/10 border border-white/20 shadow-2xl"><XIcon className="w-8 h-8"/></button>
       </header>
 
-      {/* Messages */}
-      <div className="flex-1 p-4 overflow-y-auto bg-gray-100">
-        <div className="space
+      <div className="flex-1 p-10 overflow-y-auto bg-gray-50/80 space-y-8 custom-scrollbar">
+        {messages.map((msg, idx) => (
+          <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+            <div className={`max-w-[85%] p-7 rounded-[2.5rem] text-lg font-bold shadow-xl leading-relaxed animate-fade-in ${msg.role === 'user' ? 'bg-primary text-white rounded-te-none border-b-8 border-primary-dark' : 'bg-white text-slate-800 border border-gray-200 rounded-ts-none border-b-8 border-gray-100'}`}>
+              {msg.text}
+            </div>
+          </div>
+        ))}
+        {isLoading && <TypingIndicator />}
+        <div ref={messagesEndRef} />
+      </div>
+
+      <form onSubmit={handleSendMessage} className="p-8 bg-white flex gap-5 border-t-2 border-gray-100 items-center shadow-[0_-20px_50px_rgba(0,0,0,0.02)]">
+        <input
+          type="text"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          placeholder={language === 'ar' ? 'اكتب استفسارك هنا..' : 'Type your inquiry here..'}
+          className="flex-1 p-6 border-2 border-gray-100 rounded-[2.5rem] focus:border-secondary outline-none font-black text-lg bg-gray-50 text-slate-800 transition-all placeholder:opacity-30 shadow-inner"
+        />
+        <button type="submit" disabled={isLoading} className="bg-secondary text-white p-7 rounded-full hover:scale-110 transition-all shadow-3xl disabled:opacity-30 active:scale-95">
+          <SparklesIcon className="w-10 h-10" />
+        </button>
+      </form>
+    </div>
+  );
+};

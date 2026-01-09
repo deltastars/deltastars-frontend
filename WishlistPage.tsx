@@ -1,8 +1,8 @@
 
 import React from 'react';
 import { Product, Page } from '../types';
-import { useI18n } from '../contexts/I18nContext';
-import { ShoppingCartIcon, TrashIcon } from './icons/Icons';
+import { useI18n } from './lib/contexts/I18nContext';
+import { ShoppingCartIcon, TrashIcon } from './lib/contexts/Icons';
 
 interface WishlistPageProps {
   wishlist: Product[];
@@ -20,43 +20,43 @@ export const WishlistPage: React.FC<WishlistPageProps> = ({ wishlist, removeFrom
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-4xl font-extrabold text-center text-black mb-6">{t('wishlist.title')}</h1>
+    <div className="container mx-auto px-4 py-8 text-black">
+      <h1 className="text-4xl font-extrabold text-center text-primary mb-12">{t('header.navLinks.wishlist')}</h1>
       {wishlist.length === 0 ? (
-        <div className="text-center py-12">
-          <p className="text-xl text-black font-bold">{t('wishlist.empty')}</p>
-          <button onClick={() => setPage('products')} className="mt-4 bg-primary text-white font-bold py-3 px-6 rounded-lg hover:bg-primary-light transition-colors">
+        <div className="text-center py-20 bg-white rounded-[3rem] shadow-sm border border-gray-100">
+          <p className="text-2xl text-gray-400 font-black mb-8">{language === 'ar' ? 'قائمة المفضلة فارغة حالياً' : 'Your wishlist is currently empty'}</p>
+          <button onClick={() => setPage('products')} className="bg-primary text-white font-black py-4 px-12 rounded-2xl hover:bg-primary-light transition-all shadow-xl">
             {t('home.hero.button')}
           </button>
         </div>
       ) : (
-         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
           {wishlist.map(product => (
-            <div key={product.id} className="bg-white rounded-lg shadow-md p-4 flex flex-col items-start group transition-shadow hover:shadow-xl">
-               <img 
-                 src={product.image} 
-                 alt={language === 'ar' ? product.name_ar : product.name_en} 
-                 className="w-full h-40 object-cover rounded-md mb-4 cursor-pointer transform group-hover:scale-105 transition-transform" 
-                 onClick={() => setPage('productDetail', product.id)} 
-                 aria-label={`View details for ${language === 'ar' ? product.name_ar : product.name_en}`}
-               />
-                <h3 className="text-lg font-extrabold text-black flex-grow mb-2">{language === 'ar' ? product.name_ar : product.name_en}</h3>
-                <p className="text-primary font-black text-xl">{formatCurrency(product.price)}</p>
-                <div className="flex gap-2 mt-4 w-full">
+            <div key={product.id} className="bg-white rounded-[2.5rem] shadow-md p-6 flex flex-col border border-gray-100 group transition-all hover:shadow-2xl">
+               <div className="relative overflow-hidden rounded-[2rem] mb-6 aspect-square">
+                 <img 
+                   src={product.image} 
+                   alt={language === 'ar' ? product.name_ar : product.name_en} 
+                   className="w-full h-full object-cover cursor-pointer transform group-hover:scale-110 transition-transform duration-700" 
+                   onClick={() => setPage('productDetail', product.id)} 
+                 />
+               </div>
+                <h3 className="text-xl font-black text-black flex-grow mb-2">{language === 'ar' ? product.name_ar : product.name_en}</h3>
+                <p className="text-primary font-black text-2xl mb-6">{formatCurrency(product.price)}</p>
+                <div className="flex gap-3 mt-auto">
                     <button 
                       onClick={() => handleMoveToCart(product)} 
-                      className="flex-1 flex items-center justify-center gap-2 bg-primary text-white font-bold py-2 px-4 rounded-lg hover:bg-primary-light transition-colors text-sm"
-                      aria-label={`${t('wishlist.moveToCart')} - ${language==='ar' ? product.name_ar : product.name_en}`}
+                      className="flex-1 flex items-center justify-center gap-2 bg-primary text-white font-black py-4 px-4 rounded-2xl hover:bg-primary-light transition-all shadow-lg active:scale-95"
                     >
-                        <ShoppingCartIcon />
-                        <span>{t('wishlist.moveToCart')}</span>
+                        <ShoppingCartIcon className="w-5 h-5" />
+                        <span className="text-sm">{language === 'ar' ? 'إضافة للسلة' : 'To Cart'}</span>
                     </button>
                     <button 
                       onClick={() => removeFromWishlist(product.id)} 
-                      className="p-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors"
-                      aria-label={`${t('wishlist.remove')} - ${language==='ar' ? product.name_ar : product.name_en}`}
+                      className="p-4 bg-red-50 text-red-500 rounded-2xl hover:bg-red-100 transition-all active:scale-95"
+                      title={t('common.delete')}
                     >
-                        <TrashIcon />
+                        <TrashIcon className="w-6 h-6" />
                     </button>
                 </div>
             </div>

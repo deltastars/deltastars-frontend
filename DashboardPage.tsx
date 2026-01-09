@@ -1,415 +1,266 @@
 
-import React, { useState, useMemo } from 'react';
-import { User, Product, ShowroomItem, Invoice, Payment, VipClient, VipTransaction, Page } from '../types';
-import { useI18n } from '../contexts/I18nContext';
+import React, { useState, useEffect } from 'react';
+import { User, Product, ShowroomItem, Page, PromotionalAd, CategoryConfig, Invoice, Payment, VipClient, VipTransaction, CategoryKey } from '../types';
+import { useI18n } from './lib/contexts/I18nContext';
+import { PencilIcon, TrashIcon, PlusIcon, SparklesIcon, ChartBarIcon, FingerprintIcon, XIcon, LogoutIcon, EyeIcon, EyeOffIcon, QualityIcon, DeliveryIcon } from './lib/contexts/Icons';
 import { AccountsView } from './AccountsView';
-import { DeveloperTools } from './dashboard/DeveloperTools';
-import { OperationsView } from './dashboard/OperationsView';
-import { SectionAuthModal } from './SectionAuthModal';
-import { ShoppingCartIcon, UserIcon, StarIcon, SearchIcon, PlusIcon, TrashIcon, PencilIcon } from './lib/Icons';
+import { OperationsView } from './OperationsView';
+import { WarehouseView } from './WarehouseView';
+import { useToast } from './ToastContext';
+import { SectionAuthModal } from './lib/SectionAuthModal';
 
-export interface DashboardPageProps {
+interface DashboardPageProps {
   user: User | null;
   products: Product[];
-  onAddProduct: (product: Omit<Product, 'id'>) => Promise<Product | null>;
-  onUpdateProduct: (product: Product) => Promise<Product | null>;
-  onDeleteProduct: (productId: number) => Promise<boolean>;
-  onThemeChange: (theme: { primaryColor: string; heroImage: string }) => void;
-  currentTheme: { primaryColor: string; heroImage: string };
-  isUsingMockData: boolean;
-  onSeedDatabase: () => void;
   showroomItems: ShowroomItem[];
+  promotions: PromotionalAd[];
+  categoryConfigs: CategoryConfig[];
+  onAddProduct: (p: Product) => Promise<Product>;
+  onUpdateProduct: (p: Product) => Promise<Product>;
+  onDeleteProduct: (id: number) => Promise<boolean>;
   onSetShowroomItems: (items: ShowroomItem[]) => void;
+  onSetPromotions: (promos: PromotionalAd[]) => void;
+  onSetCategoryConfigs: (configs: CategoryConfig[]) => void;
+  setPage: (page: Page) => void;
   invoices: Invoice[];
   payments: Payment[];
   vipClients: VipClient[];
   transactions: VipTransaction[];
-  onAddPayment: (payment: Payment) => void;
-  onAddVipClient: (client: VipClient) => Promise<VipClient>;
-  onUpdateVipClient: (client: VipClient) => Promise<VipClient>;
-  onDeleteVipClient: (clientId: string) => Promise<boolean>;
-  onShowPasswordGuide: () => void;
-  onAdminPasswordChange: (passwords: { current: string; new: string }) => Promise<boolean>;
-  setPage: (page: Page) => void;
+  onAddPayment: (p: Payment) => void;
+  onAddVipClient: (c: VipClient) => Promise<VipClient>;
+  onUpdateVipClient: (c: VipClient) => Promise<VipClient>;
+  onDeleteVipClient: (id: string) => Promise<boolean>;
 }
 
-type View = 'menu' | 'products' | 'operations' | 'accounts' | 'developer' | 'gm.portal' | 'reports' | 'offers' | 'security';
+const DevMasterPinModal: React.FC<{ onUnlock: () => void; onClose: () => void }> = ({ onUnlock, onClose }) => {
+    const { language } = useI18n();
+    const [pin, setPin] = useState('');
+    const [error, setError] = useState(false);
 
-// --- GM Portal Specific Sub-Component ---
-const GeneralManagerPortal: React.FC<{
-    invoices: Invoice[];
-    products: Product[];
-    vipClients: VipClient[];
-    onNavigate: (view: View) => void;
-}> = ({ invoices, products, vipClients, onNavigate }) => {
-    const { t, formatCurrency } = useI18n();
-    
-    // Aggregated Stats
-    const totalRevenue = invoices.reduce((sum, inv) => sum + inv.total, 0);
-    const pendingRevenue = invoices.filter(i => i.status !== 'Paid').reduce((sum, inv) => sum + inv.total, 0);
-    const lowStockCount = products.filter(p => p.stock_quantity < 20).length;
-    const activeClients = vipClients.length;
-
-    return (
-        <div className="space-y-6">
-             {/* Status Bar */}
-             <div className="bg-gray-800 text-white p-4 rounded-lg shadow-md flex justify-between items-center border-b-4 border-gray-900">
-                 <div className="flex gap-4">
-                     <div className="text-center">
-                         <p className="text-xs text-gray-400 font-bold">{t('dashboard.metrics.revenue')}</p>
-                         <p className="text-xl font-black text-green-400">{formatCurrency(totalRevenue)}</p>
-                     </div>
-                     <div className="w-px bg-gray-600"></div>
-                     <div className="text-center">
-                         <p className="text-xs text-gray-400 font-bold">{t('dashboard.metrics.pendingInvoices')}</p>
-                         <p className="text-xl font-black text-yellow-400">{formatCurrency(pendingRevenue)}</p>
-                     </div>
-                     <div className="w-px bg-gray-600"></div>
-                     <div className="text-center">
-                         <p className="text-xs text-gray-400 font-bold">{t('dashboard.metrics.lowStock')}</p>
-                         <p className="text-xl font-black text-red-400">{lowStockCount}</p>
-                     </div>
-                 </div>
-                 <div className="text-sm font-light">
-                    {t('dashboard.systemStatus')}: <span className="text-green-400 font-black">{t('dashboard.online')}</span>
-                 </div>
-             </div>
-
-             {/* Quick Links Grid */}
-             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                 <button onClick={() => onNavigate('reports')} className="bg-white p-6 rounded-lg border-2 border-gray-200 border-b-4 hover:border-blue-500 transition-all text-center group">
-                     <div className="text-4xl mb-2 transform group-hover:scale-110 transition-transform">📈</div>
-                     <h3 className="font-black text-lg text-gray-800">{t('dashboard.sections.reports.title')}</h3>
-                     <p className="text-sm text-gray-500 font-bold">{t('dashboard.sections.reports.desc')}</p>
-                 </button>
-                 <button onClick={() => onNavigate('offers')} className="bg-white p-6 rounded-lg border-2 border-gray-200 border-b-4 hover:border-purple-500 transition-all text-center group">
-                     <div className="text-4xl mb-2 transform group-hover:scale-110 transition-transform">🏷️</div>
-                     <h3 className="font-black text-lg text-gray-800">{t('dashboard.sections.offers.title')}</h3>
-                     <p className="text-sm text-gray-500 font-bold">{t('dashboard.sections.offers.desc')}</p>
-                 </button>
-                 <button onClick={() => onNavigate('security')} className="bg-white p-6 rounded-lg border-2 border-gray-200 border-b-4 hover:border-red-500 transition-all text-center group">
-                     <div className="text-4xl mb-2 transform group-hover:scale-110 transition-transform">🛡️</div>
-                     <h3 className="font-black text-lg text-gray-800">{t('dashboard.sections.security.title')}</h3>
-                     <p className="text-sm text-gray-500 font-bold">{t('dashboard.sections.security.desc')}</p>
-                 </button>
-             </div>
-        </div>
-    );
-};
-
-// ... (ProductFormModal and ProductsManager)
-// Included minimally to keep file valid, assuming existing components are preserved if not modified here, 
-// but I need to return full file content.
-
-const ProductFormModal: React.FC<{
-    isOpen: boolean;
-    onClose: () => void;
-    product?: Product | null;
-    onSave: (p: any) => Promise<void>;
-}> = ({ isOpen, onClose, product, onSave }) => {
-    const { t } = useI18n();
-    const [formData, setFormData] = useState<Partial<Product>>({});
-    
-    useMemo(() => {
-        setFormData(product || { 
-            name_ar: '', name_en: '', price: 0, category: 'fruits', 
-            unit_ar: 'كيلو', unit_en: 'kg', stock_quantity: 0, image: '' 
-        });
-    }, [product, isOpen]);
-
-    if (!isOpen) return null;
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        await onSave(formData);
-        onClose();
-    };
-
-    return (
-        <div className="fixed inset-0 bg-black bg-opacity-80 z-50 flex justify-center items-center p-4">
-            <div className="bg-white rounded-lg shadow-xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto border-4 border-green-700">
-                <h2 className="text-2xl font-black text-green-800 mb-4">{product ? t('dashboard.products.editTitle') : t('dashboard.products.addTitle')}</h2>
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                        <input className="border-2 border-gray-300 p-2 rounded w-full font-bold" placeholder="Name (Arabic)" value={formData.name_ar} onChange={e => setFormData({...formData, name_ar: e.target.value})} required />
-                        <input className="border-2 border-gray-300 p-2 rounded w-full font-bold" placeholder="Name (English)" value={formData.name_en} onChange={e => setFormData({...formData, name_en: e.target.value})} required />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                        <input className="border-2 border-gray-300 p-2 rounded w-full font-bold" type="number" placeholder="Price" value={formData.price} onChange={e => setFormData({...formData, price: parseFloat(e.target.value)})} required />
-                        <input className="border-2 border-gray-300 p-2 rounded w-full font-bold" type="number" placeholder="Original Price (Optional)" value={formData.original_price || ''} onChange={e => setFormData({...formData, original_price: parseFloat(e.target.value)})} />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                        <select className="border-2 border-gray-300 p-2 rounded w-full bg-white font-bold" value={formData.category} onChange={e => setFormData({...formData, category: e.target.value as any})}>
-                            <option value="fruits">{t('categories.fruits')}</option>
-                            <option value="vegetables">{t('categories.vegetables')}</option>
-                            <option value="dates">{t('categories.dates')}</option>
-                            <option value="eggs">{t('categories.eggs')}</option>
-                            <option value="herbs">{t('categories.herbs')}</option>
-                            <option value="organic">{t('categories.organic')}</option>
-                            <option value="seasonal">{t('categories.seasonal')}</option>
-                        </select>
-                        <input className="border-2 border-gray-300 p-2 rounded w-full font-bold" type="number" placeholder="Stock" value={formData.stock_quantity} onChange={e => setFormData({...formData, stock_quantity: parseInt(e.target.value)})} required />
-                    </div>
-                    <input className="border-2 border-gray-300 p-2 rounded w-full font-bold" placeholder="Image URL" value={formData.image} onChange={e => setFormData({...formData, image: e.target.value})} required />
-                     <div className="grid grid-cols-2 gap-4">
-                        <input className="border-2 border-gray-300 p-2 rounded w-full font-bold" placeholder="Unit (AR)" value={formData.unit_ar} onChange={e => setFormData({...formData, unit_ar: e.target.value})} required />
-                        <input className="border-2 border-gray-300 p-2 rounded w-full font-bold" placeholder="Unit (EN)" value={formData.unit_en} onChange={e => setFormData({...formData, unit_en: e.target.value})} required />
-                    </div>
-                    <div className="flex justify-end gap-2 mt-4">
-                        <button type="button" onClick={onClose} className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 font-black text-black">{t('dashboard.products.cancel')}</button>
-                        <button type="submit" className="px-4 py-2 bg-green-700 text-white rounded hover:bg-green-800 font-black">{t('dashboard.products.save')}</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    );
-};
-
-const ProductsManager: React.FC<DashboardPageProps> = (props) => {
-    const { t, language, formatCurrency } = useI18n();
-    const [searchTerm, setSearchTerm] = useState('');
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-
-    const filteredProducts = props.products.filter(p => 
-        (language === 'ar' ? p.name_ar : p.name_en).toLowerCase().includes(searchTerm.toLowerCase())
-    );
-
-    const handleSave = async (data: any) => {
-        if (editingProduct) {
-            await props.onUpdateProduct({ ...editingProduct, ...data });
-        } else {
-            await props.onAddProduct(data);
+    const checkPin = (val: string) => {
+        setPin(val);
+        if (val === '77777') { // رمز حماية سيادي ومستقل للمطور
+            onUnlock();
+        } else if (val.length >= 5) {
+            setError(true);
+            setTimeout(() => { setPin(''); setError(false); }, 1000);
         }
-        setIsModalOpen(false);
-        setEditingProduct(null);
     };
 
     return (
-        <div className="bg-white rounded-lg shadow p-6 border-2 border-green-100">
-            <ProductFormModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} product={editingProduct} onSave={handleSave} />
-            <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-black text-primary">{t('dashboard.products.title')}</h2>
-                <div className="flex gap-4">
-                    <button onClick={() => { setEditingProduct(null); setIsModalOpen(true); }} className="bg-green-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-green-700 font-bold shadow-md transition-transform hover:scale-105"><PlusIcon /> {t('dashboard.products.addNew')}</button>
+        <div className="fixed inset-0 bg-slate-950/98 z-[900] flex justify-center items-center backdrop-blur-3xl animate-fade-in">
+            <div className={`bg-white p-16 rounded-[4.5rem] w-full max-w-md shadow-3xl text-center border-t-[30px] border-cyan-500 relative ${error ? 'animate-shake' : ''}`}>
+                <div className="w-24 h-24 bg-cyan-50 rounded-3xl flex items-center justify-center mx-auto mb-8 shadow-inner">
+                    <FingerprintIcon className="w-12 h-12 text-cyan-600" />
                 </div>
-            </div>
-            
-            <div className="mb-4 relative">
+                <h2 className="text-4xl font-black text-slate-800 mb-4 uppercase tracking-tighter">Bypass Protocol 10.0</h2>
+                <p className="text-gray-400 font-bold mb-10">أدخل رمز الوصول الفني لفتح "البوابة السيادية"</p>
                 <input 
-                    type="text" 
-                    placeholder={t('dashboard.products.usingMockDataNotice.title') === 'Notice' ? 'Search...' : 'بحث...'} 
-                    value={searchTerm} 
-                    onChange={e => setSearchTerm(e.target.value)} 
-                    className="w-full p-3 border-2 border-gray-300 rounded-lg pl-10 font-bold" 
+                    type="password" 
+                    value={pin}
+                    onChange={(e) => checkPin(e.target.value)}
+                    placeholder="•••••"
+                    maxLength={5}
+                    className="w-full text-center text-7xl font-black tracking-[0.5em] p-8 bg-gray-50 border-4 border-gray-100 rounded-[2.5rem] outline-none focus:border-cyan-500 transition-all text-slate-800 shadow-inner"
+                    autoFocus
                 />
-                <SearchIcon className="absolute top-4 left-3 text-gray-400 w-5 h-5" />
-            </div>
-
-            {props.isUsingMockData && (
-                <div className="bg-yellow-50 border-l-8 border-yellow-400 p-4 mb-4 flex justify-between items-center">
-                     <div className="text-yellow-800">
-                         <p className="font-black text-lg">{t('dashboard.products.usingMockDataNotice.title')}</p>
-                         <p className="text-sm font-bold">{t('dashboard.products.usingMockDataNotice.body')}</p>
-                     </div>
-                     <button onClick={props.onSeedDatabase} className="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600 shadow-md font-black">{t('dashboard.products.seedDatabaseButton')}</button>
-                </div>
-            )}
-
-            <div className="overflow-x-auto rounded-lg border border-gray-200">
-                <table className="w-full text-right border-collapse">
-                    <thead>
-                        <tr className="bg-green-50 text-green-900">
-                            <th className="p-3 border-b border-green-100 font-black">{t('dashboard.accounts.invoices.item')}</th>
-                            <th className="p-3 border-b border-green-100 font-black">{t('dashboard.reports.category')}</th>
-                            <th className="p-3 border-b border-green-100 font-black">{t('dashboard.accounts.invoices.price')}</th>
-                            <th className="p-3 border-b border-green-100 text-center font-black">{t('dashboard.operations.tabs.inventory')}</th>
-                            <th className="p-3 border-b border-green-100 text-center font-black">{t('dashboard.accounts.invoices.actions')}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {filteredProducts.map(p => (
-                            <tr key={p.id} className="hover:bg-green-50 transition-colors">
-                                <td className="p-3 border-b flex items-center gap-3">
-                                    <img src={p.image} className="w-12 h-12 rounded-md object-cover border border-gray-200" />
-                                    <span className="font-black text-gray-800">{language === 'ar' ? p.name_ar : p.name_en}</span>
-                                </td>
-                                <td className="p-3 border-b font-bold text-gray-600">{t(`categories.${p.category}`)}</td>
-                                <td className="p-3 border-b font-black text-green-700">{formatCurrency(p.price)}</td>
-                                <td className="p-3 border-b text-center">
-                                    <span className={`px-3 py-1 rounded-full text-sm font-black ${p.stock_quantity < 20 ? 'bg-red-200 text-red-800' : 'bg-green-100 text-green-800'}`}>
-                                        {p.stock_quantity}
-                                    </span>
-                                </td>
-                                <td className="p-3 border-b text-center">
-                                    <div className="flex justify-center gap-2">
-                                        <button onClick={() => { setEditingProduct(p); setIsModalOpen(true); }} className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg"><PencilIcon /></button>
-                                        <button onClick={() => { if(window.confirm(t('dashboard.products.confirmDelete'))) props.onDeleteProduct(p.id); }} className="p-2 text-red-600 hover:bg-red-100 rounded-lg"><TrashIcon /></button>
-                                    </div>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-                {filteredProducts.length === 0 && <p className="text-center p-8 text-gray-500 font-bold">{t('dashboard.products.noProducts')}</p>}
+                {error && <p className="mt-6 text-red-600 font-black animate-pulse">INVALID ACCESS TOKEN</p>}
+                <button onClick={onClose} className="mt-12 text-gray-300 font-black hover:text-red-500 transition-colors uppercase tracking-widest text-xs">Terminate Handshake</button>
             </div>
         </div>
     );
-};
-
-const SecurityView: React.FC<{ onBack: () => void, onAdminPasswordChange: (p: {current: string, new: string}) => Promise<boolean> }> = ({ onBack, onAdminPasswordChange }) => {
-    const { t } = useI18n();
-    const [passwords, setPasswords] = useState({ current: '', new: '', confirm: '' });
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (passwords.new !== passwords.confirm) return alert(t('auth.passwordMismatch'));
-        await onAdminPasswordChange({ current: passwords.current, new: passwords.new });
-        setPasswords({ current: '', new: '', confirm: '' });
-    };
-    return (
-        <div className="bg-white rounded-lg shadow p-6 max-w-md mx-auto border-t-4 border-red-500">
-            <button onClick={onBack} className="mb-4 text-gray-500 hover:text-primary font-bold">&larr; {t('dashboard.back')}</button>
-            <h2 className="text-2xl font-black text-red-600 mb-6">{t('dashboard.sections.security.title')}</h2>
-            <form onSubmit={handleSubmit} className="space-y-4">
-                <input type="password" placeholder={t('dashboard.security.currentPassword')} className="w-full p-3 border rounded font-bold" value={passwords.current} onChange={e => setPasswords({...passwords, current: e.target.value})} required />
-                <input type="password" placeholder={t('auth.newPassword')} className="w-full p-3 border rounded font-bold" value={passwords.new} onChange={e => setPasswords({...passwords, new: e.target.value})} required />
-                <input type="password" placeholder={t('auth.confirmPassword')} className="w-full p-3 border rounded font-bold" value={passwords.confirm} onChange={e => setPasswords({...passwords, confirm: e.target.value})} required />
-                <button type="submit" className="w-full bg-red-600 text-white py-3 rounded font-black hover:bg-red-700 shadow-lg">{t('dashboard.security.changePasswordButton')}</button>
-            </form>
-        </div>
-    );
-};
-
-const OffersManager: React.FC<{onBack: () => void}> = ({ onBack }) => {
-    const { t } = useI18n();
-    return <div className="bg-white p-6 rounded shadow border-t-4 border-purple-500"><button onClick={onBack} className="font-bold text-gray-500">&larr; {t('dashboard.back')}</button><h2 className="text-2xl font-black mt-4 text-purple-700">{t('dashboard.sections.offers.title')}</h2><p className="text-gray-500 mt-2 font-bold">Offers management module placeholder.</p></div>;
-};
-const ReportsView: React.FC<{onBack: () => void}> = ({ onBack }) => {
-    const { t } = useI18n();
-    return <div className="bg-white p-6 rounded shadow border-t-4 border-blue-500"><button onClick={onBack} className="font-bold text-gray-500">&larr; {t('dashboard.back')}</button><h2 className="text-2xl font-black mt-4 text-blue-700">{t('dashboard.sections.reports.title')}</h2><p className="text-gray-500 mt-2 font-bold">Advanced reporting module placeholder.</p></div>;
 };
 
 export const DashboardPage: React.FC<DashboardPageProps> = (props) => {
-  const { t } = useI18n();
-  const [currentView, setCurrentView] = useState<View>('menu');
-  const [authSection, setAuthSection] = useState<'developer' | 'gm.portal' | 'accounts' | null>(null);
-  const [unlockedSections, setUnlockedSections] = useState<string[]>([]);
+  const { language, t } = useI18n();
+  const { addToast } = useToast();
+  const [view, setView] = useState<string>(() => {
+      return localStorage.getItem('delta-dashboard-last-view') || 'menu';
+  });
+  const [authNeeded, setAuthNeeded] = useState<string | null>(null);
+  const [showDevPin, setShowDevPin] = useState(false);
+  
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [editingPromotion, setEditingPromotion] = useState<PromotionalAd | null>(null);
+  const [editingShowroom, setEditingShowroom] = useState<ShowroomItem | null>(null);
 
-  const handleNavigate = (view: View) => {
-    if (view === 'developer' || view === 'gm.portal' || view === 'accounts') {
-      if (unlockedSections.includes(view)) {
-          setCurrentView(view);
-      } else {
-          setAuthSection(view);
-      }
-    } else {
-      setCurrentView(view);
-    }
-  };
+  useEffect(() => {
+      localStorage.setItem('delta-dashboard-last-view', view);
+  }, [view]);
 
-  const handleAuthSuccess = () => {
-    if (authSection) {
-      setUnlockedSections(prev => [...prev, authSection]);
-      setCurrentView(authSection as View);
-      setAuthSection(null);
-    }
-  };
+  if (!props.user) return <div className="p-20 text-center font-black text-red-600">UNAUTHORIZED_ACCESS_ERR</div>;
+
+  const renderDeveloperPanel = () => (
+    <div className="space-y-12 animate-fade-in-up pb-20 text-black">
+        {/* Sovereign Header for Dev Portal */}
+        <div className="bg-slate-950 text-white p-14 rounded-[5rem] border-b-[20px] border-cyan-600 flex flex-col xl:flex-row justify-between items-center shadow-3xl gap-8 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-[50rem] h-[50rem] bg-cyan-500/10 blur-[150px] rounded-full animate-pulse-slow"></div>
+            <div className="flex items-center gap-10 relative z-10">
+                <div className="w-28 h-28 bg-cyan-500/20 rounded-[2.5rem] flex items-center justify-center text-7xl shadow-inner border border-white/10">🛡️</div>
+                <div>
+                    <h2 className="text-6xl md:text-7xl font-black uppercase tracking-tighter text-cyan-400">Master Core Gate</h2>
+                    <p className="text-2xl font-bold opacity-60">تعديل البنية التحتية | إدارة أصول الصالة | حملات الترويج</p>
+                </div>
+            </div>
+            <button onClick={() => setView('menu')} className="relative z-10 bg-white/10 hover:bg-white/20 px-12 py-5 rounded-3xl font-black text-2xl transition-all shadow-2xl border border-white/10">الخروج للبوابة المركزية &times;</button>
+        </div>
+
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-12">
+            {/* Master Inventory Core */}
+            <div className="bg-white p-12 rounded-[4.5rem] shadow-2xl border-4 border-slate-50 flex flex-col h-[900px]">
+                <div className="flex justify-between items-start mb-12">
+                    <div>
+                        <h3 className="text-4xl font-black text-slate-800 uppercase tracking-tighter">Database Entry</h3>
+                        <p className="text-gray-400 font-bold">إدارة بيانات {props.products.length} وحدة نشطة</p>
+                    </div>
+                    <button 
+                        onClick={() => setEditingProduct({ id: Date.now(), name_ar: '', name_en: '', category: 'fruits', price: 0, image: '', unit_ar: 'كيلو', unit_en: 'kg', stock_quantity: 500, min_threshold: 20 })} 
+                        className="bg-cyan-600 text-white px-8 py-5 rounded-[2rem] shadow-xl hover:scale-105 transition-all flex items-center gap-3 font-black text-xl"
+                    >
+                        <PlusIcon /> صنف جديد
+                    </button>
+                </div>
+                
+                <div className="flex-1 overflow-y-auto custom-scrollbar pr-4 space-y-5">
+                    {props.products.map(p => (
+                        <div key={p.id} className="p-6 bg-slate-50 rounded-[2.5rem] border-2 border-transparent flex justify-between items-center group hover:bg-white hover:border-cyan-100 hover:shadow-2xl transition-all">
+                             <div className="flex items-center gap-8">
+                                <img src={p.image} className="w-20 h-20 rounded-3xl object-cover shadow-2xl border-4 border-white" alt="" />
+                                <div>
+                                    <p className="font-black text-2xl text-slate-800">{p.name_ar}</p>
+                                    <p className="text-xs text-cyan-600 font-black uppercase tracking-widest">{p.category} | {p.price} SAR</p>
+                                </div>
+                             </div>
+                             <div className="flex gap-3">
+                                <button onClick={() => setEditingProduct(p)} className="p-4 bg-cyan-50 text-cyan-600 rounded-2xl hover:bg-cyan-600 hover:text-white transition-all"><PencilIcon className="w-5 h-5"/></button>
+                                <button onClick={() => { if(window.confirm('Purge?')) props.onDeleteProduct(p.id); }} className="p-4 bg-red-50 text-red-500 rounded-2xl hover:bg-red-600 hover:text-white transition-all"><TrashIcon className="w-5 h-5"/></button>
+                             </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+            {/* Visual Experience Manager */}
+            <div className="space-y-12 h-[900px] overflow-y-auto custom-scrollbar pr-4">
+                <div className="bg-white p-12 rounded-[4.5rem] shadow-2xl border-4 border-slate-50">
+                    <h3 className="text-4xl font-black text-slate-800 mb-10 border-b-4 border-cyan-500/10 pb-6">صالة العروض الذكية</h3>
+                    <div className="grid grid-cols-1 gap-6">
+                        {props.showroomItems.map(item => (
+                            <div key={item.id} className="flex items-center justify-between p-6 bg-slate-50 rounded-[2.5rem] group hover:border-cyan-200 border-2 border-transparent transition-all shadow-sm">
+                                <div className="flex items-center gap-6">
+                                    <img src={item.image} className="w-24 h-24 rounded-3xl object-cover shadow-xl border-4 border-white" alt="" />
+                                    <div><p className="font-black text-2xl text-slate-800">{item.title_ar}</p><p className="text-xs text-gray-400 font-bold uppercase">{item.section_en || 'Gallery'}</p></div>
+                                </div>
+                                <div className="flex gap-3">
+                                    <button onClick={() => setEditingShowroom(item)} className="p-4 bg-white text-cyan-600 rounded-2xl shadow-sm hover:bg-cyan-600 hover:text-white transition-all"><PencilIcon className="w-5 h-5"/></button>
+                                    <button onClick={() => { if(window.confirm('Delete?')) props.onSetShowroomItems(props.showroomItems.filter(s => s.id !== item.id)) }} className="p-4 bg-white text-red-400 rounded-2xl shadow-sm hover:bg-red-500 hover:text-white transition-all"><TrashIcon className="w-5 h-5"/></button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                <div className="bg-white p-12 rounded-[4.5rem] shadow-2xl border-4 border-slate-50">
+                    <h3 className="text-4xl font-black text-slate-800 mb-10 border-b-4 border-secondary/20 pb-6">إعلانات المناسبات</h3>
+                    <div className="grid grid-cols-2 gap-8">
+                         {props.promotions.map(promo => (
+                            <div key={promo.id} onClick={() => setEditingPromotion(promo)} className="cursor-pointer relative h-56 rounded-[3rem] overflow-hidden shadow-2xl group border-8 border-white hover:border-secondary transition-all">
+                                <img src={promo.image} className="w-full h-full object-cover opacity-70 group-hover:scale-125 transition-transform duration-1000" alt="" />
+                                <div className="absolute inset-0 bg-slate-900/40 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm"><p className="text-white font-black text-lg">تعديل</p></div>
+                                <div className="absolute top-6 left-6 bg-secondary text-white px-5 py-2 rounded-full text-xs font-black">{promo.title_ar}</div>
+                            </div>
+                         ))}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {/* Master Data Override Modals */}
+        {editingProduct && (
+            <div className="fixed inset-0 bg-slate-950/98 z-[950] flex justify-center items-center p-6 backdrop-blur-3xl animate-fade-in">
+                <div className="bg-white p-16 rounded-[5rem] w-full max-w-4xl shadow-3xl text-black relative border-t-[40px] border-cyan-600">
+                    <button onClick={() => setEditingProduct(null)} className="absolute top-10 end-14 text-6xl text-gray-200 hover:text-red-500 transition-all font-black">&times;</button>
+                    <h2 className="text-5xl font-black text-cyan-700 uppercase tracking-tighter mb-10">Data Override Protocol</h2>
+                    <form onSubmit={(e) => { e.preventDefault(); props.onUpdateProduct(editingProduct); setEditingProduct(null); addToast('Master DB Updated', 'success'); }} className="space-y-8">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <input type="text" value={editingProduct.name_ar} onChange={e => setEditingProduct({...editingProduct, name_ar: e.target.value})} className="w-full p-6 bg-gray-50 border-4 border-gray-100 rounded-3xl font-black text-2xl outline-none focus:border-cyan-500" placeholder="Product Label (AR)" required />
+                            <input type="number" step="0.01" value={editingProduct.price} onChange={e => setEditingProduct({...editingProduct, price: Number(e.target.value)})} className="w-full p-6 bg-gray-50 border-4 border-gray-100 rounded-3xl font-black text-3xl outline-none focus:border-cyan-500" placeholder="Price (SAR)" required />
+                        </div>
+                        <input type="text" value={editingProduct.image} onChange={e => setEditingProduct({...editingProduct, image: e.target.value})} className="w-full p-6 bg-gray-50 border-4 border-gray-100 rounded-3xl font-mono text-sm" placeholder="Image URL / ID" required />
+                        <button type="submit" className="w-full bg-cyan-600 text-white py-8 rounded-[3rem] font-black text-3xl shadow-3xl border-b-[10px] border-cyan-800">COMMIT TO CLOUD MASTER</button>
+                    </form>
+                </div>
+            </div>
+        )}
+
+        {editingShowroom && (
+            <div className="fixed inset-0 bg-slate-950/98 z-[950] flex justify-center items-center p-6 backdrop-blur-3xl animate-fade-in">
+                <div className="bg-white p-16 rounded-[5rem] w-full max-w-3xl shadow-3xl text-black relative border-t-[40px] border-primary">
+                    <button onClick={() => setEditingShowroom(null)} className="absolute top-10 end-14 text-6xl text-gray-200 hover:text-red-500 transition-all font-black">&times;</button>
+                    <h2 className="text-5xl font-black text-primary mb-12">Visual Asset Sync</h2>
+                    <form onSubmit={(e) => { e.preventDefault(); props.onSetShowroomItems(props.showroomItems.some(s=>s.id===editingShowroom.id)?props.showroomItems.map(s=>s.id===editingShowroom.id?editingShowroom:s):[editingShowroom,...props.showroomItems]); setEditingShowroom(null); addToast('Gallery Sync Success', 'success'); }} className="space-y-8">
+                        <input type="text" placeholder="Title (AR)" value={editingShowroom.title_ar} onChange={e => setEditingShowroom({...editingShowroom, title_ar: e.target.value})} className="w-full p-7 bg-gray-50 border-4 border-gray-100 rounded-3xl font-black text-2xl" required />
+                        <input type="text" placeholder="Image Link" value={editingShowroom.image} onChange={e => setEditingShowroom({...editingShowroom, image: e.target.value})} className="w-full p-7 bg-gray-50 border-4 border-gray-100 rounded-3xl font-mono text-xs" required />
+                        <button type="submit" className="w-full bg-primary text-white py-8 rounded-[3rem] font-black text-3xl shadow-3xl">PUSH TO SHOWROOM</button>
+                    </form>
+                </div>
+            </div>
+        )}
+    </div>
+  );
 
   const renderView = () => {
-    switch (currentView) {
-      case 'products':
-        return <div className="space-y-4">
-            <button onClick={() => setCurrentView('menu')} className="text-gray-500 hover:text-primary font-black mb-4 block">&larr; {t('dashboard.back')}</button>
-            <ProductsManager {...props} />
-        </div>;
-      case 'operations':
-        return <OperationsView onBack={() => setCurrentView('menu')} products={props.products} onUpdateProduct={props.onUpdateProduct} />;
-      case 'accounts':
-        return <AccountsView onBack={() => setCurrentView('menu')} {...props} />;
-      case 'developer':
-        return <DeveloperTools 
-                  onBack={() => setCurrentView('menu')} 
-                  showroomItems={props.showroomItems} 
-                  onUpdateShowroom={props.onSetShowroomItems} 
-               />;
-      case 'gm.portal':
-        return (
-            <div className="bg-white p-6 rounded-lg shadow border-t-4 border-primary">
-                <button onClick={() => setCurrentView('menu')} className="mb-4 text-gray-500 hover:text-primary font-black">&larr; {t('dashboard.back')}</button>
-                <h2 className="text-3xl font-black text-primary mb-6">{t('dashboard.sections.gm.portal.title')}</h2>
-                <GeneralManagerPortal invoices={props.invoices} products={props.products} vipClients={props.vipClients} onNavigate={setCurrentView} />
-            </div>
-        );
-      case 'security':
-        return <SecurityView onBack={() => setCurrentView('menu')} onAdminPasswordChange={props.onAdminPasswordChange} />;
-      case 'offers':
-        return <OffersManager onBack={() => setCurrentView('menu')} />;
-      case 'reports':
-        return <ReportsView onBack={() => setCurrentView('menu')} />;
-      default:
-        return (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-fade-in">
-                {[
-                    { id: 'products', icon: '🍎' },
-                    { id: 'operations', icon: '⚙️' },
-                    { id: 'accounts', icon: '💰' },
-                    { id: 'gm.portal', icon: '👔' },
-                    { id: 'developer', icon: '👨‍💻' },
-                    { id: 'security', icon: '🔒' }
-                ].map(section => (
-                    <button 
-                        key={section.id} 
-                        onClick={() => handleNavigate(section.id as View)}
-                        className="
-                            bg-green-700 
-                            text-white 
-                            p-8 
-                            text-center 
-                            transition-all 
-                            duration-150 
-                            transform 
-                            border-b-8 border-r-8 border-green-900 
-                            hover:border-b-0 hover:border-r-0 hover:border-t-8 hover:border-l-8 hover:bg-green-600
-                            active:border-b-0 active:border-r-0 active:border-t-8 active:border-l-8 active:bg-green-700 active:translate-y-2
-                            rounded-lg
-                            group
-                            relative
-                            overflow-hidden
-                            shadow-none
-                        "
-                        style={{
-                            textShadow: 'none' // Explicitly requested no shadow
-                        }}
-                    >
-                        <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
-                        <div className="text-6xl mb-4 transform group-hover:scale-110 transition-transform duration-200 drop-shadow-none">{section.icon}</div>
-                        <h3 className="text-2xl font-black mb-2 tracking-wide drop-shadow-none">{t(`dashboard.sections.${section.id}.title`)}</h3>
-                        <p className="text-green-100 font-bold text-sm opacity-90 group-hover:opacity-100 drop-shadow-none">{t(`dashboard.sections.${section.id}.desc`)}</p>
-                    </button>
-                ))}
-            </div>
-        );
+    switch (view) {
+        case 'warehouse': return <WarehouseView products={props.products} invoices={props.invoices} onUpdateStock={(id, qty) => props.onUpdateProduct({ ...props.products.find(p => p.id === id)!, stock_quantity: qty })} onBack={() => setView('menu')} />;
+        case 'operations': return <OperationsView onBack={() => setView('menu')} />;
+        case 'accounts': return <AccountsView onBack={() => setView('menu')} invoices={props.invoices} payments={props.payments} vipClients={props.vipClients} transactions={props.transactions} onAddPayment={props.onAddPayment} onAddVipClient={props.onAddVipClient} onUpdateVipClient={props.onUpdateVipClient} onDeleteVipClient={props.onDeleteVipClient} />;
+        case 'developer': return renderDeveloperPanel();
+        default:
+            const dashboardItems = [
+                { id: 'warehouse', icon: '📦', color: 'bg-yellow-50 border-yellow-200 text-yellow-900', label: 'المستودعات واللوجستيات', desc: 'جرد وتحكم فوري في المخزون' },
+                { id: 'operations', icon: '📡', color: 'bg-orange-50 border-orange-200 text-orange-900', label: 'رادار الأسطول GPS', desc: 'تتبع المناديب والشاحنات حياً' },
+                { id: 'accounts', icon: '📈', color: 'bg-green-50 border-green-200 text-green-900', label: 'إدارة المالية والمحاسبة', desc: 'الفواتير، الرصيد، والمدفوعات' },
+                { id: 'developer', icon: '🔒', color: 'bg-slate-900 border-slate-700 text-slate-100', label: 'البوابة السيادية (المطور)', desc: 'تحكم مطلق في أصول وهوية المتجر' }
+            ];
+            return (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-12 animate-fade-in text-black">
+                    {dashboardItems.map(item => (
+                        <div key={item.id} onClick={() => item.id === 'developer' ? setShowDevPin(true) : setAuthNeeded(item.id)} className={`${item.color} p-20 rounded-[5.5rem] border-4 shadow-3xl hover:shadow-[0_60px_150px_rgba(0,0,0,0.1)] transition-all cursor-pointer group hover:-translate-y-8 flex flex-col items-center text-center relative overflow-hidden`}>
+                             <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-bl-full group-hover:scale-150 transition-transform duration-1000"></div>
+                             <div className="text-[14rem] mb-12 group-hover:scale-110 transition-transform duration-700 drop-shadow-2xl">{item.icon}</div>
+                             <h3 className="text-5xl font-black mb-4 uppercase tracking-tighter leading-none">{item.label}</h3>
+                             <p className="text-2xl font-bold opacity-40">{item.desc}</p>
+                        </div>
+                    ))}
+                </div>
+            );
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 p-6">
-        {authSection && <SectionAuthModal section={authSection} onUnlock={handleAuthSuccess} onClose={() => setAuthSection(null)} />}
-        <div className="container mx-auto">
-            {currentView === 'menu' && (
-                <div className="flex justify-between items-end mb-8 border-b-4 border-gray-300 pb-6">
-                    <div>
-                        <h1 className="text-5xl font-black text-green-800 drop-shadow-sm">{t('dashboard.title')}</h1>
-                        <p className="text-gray-600 mt-2 text-xl font-bold" dangerouslySetInnerHTML={{ __html: t('dashboard.welcome', { email: props.user?.type === 'admin' ? props.user.email : 'Admin' }) }}></p>
-                    </div>
-                    <div className="flex gap-4">
-                        <button onClick={props.onShowPasswordGuide} className="bg-yellow-400 text-yellow-900 px-6 py-3 rounded-lg font-black hover:bg-yellow-500 transition-colors shadow-md border-b-4 border-yellow-600 active:border-b-0 active:translate-y-1">🔑 {t('dashboard.passwordGuide')}</button>
-                        <button onClick={() => handleNavigate('security')} className="bg-red-600 text-white px-6 py-3 rounded-lg font-black hover:bg-red-700 transition-colors shadow-md border-b-4 border-red-800 active:border-b-0 active:translate-y-1">🔒 {t('dashboard.sections.security.title')}</button>
-                    </div>
-                </div>
-            )}
-            {renderView()}
+    <div className="container mx-auto px-6 py-20 min-h-screen">
+      {showDevPin && <DevMasterPinModal onUnlock={() => { setShowDevPin(false); setView('developer'); addToast('Master Key Accepted :: Security Overridden', 'success'); }} onClose={() => setShowDevPin(false)} />}
+      {authNeeded && (
+          <SectionAuthModal 
+            section={authNeeded as any} 
+            onUnlock={() => { setView(authNeeded); setAuthNeeded(null); }} 
+            onClose={() => setAuthNeeded(null)} 
+          />
+      )}
+      <div className="bg-primary text-white p-20 md:p-32 rounded-[8rem] shadow-3xl mb-24 relative overflow-hidden border-b-[80px] border-secondary">
+        <div className="absolute top-0 right-0 w-[80rem] h-[80rem] bg-white/5 rounded-bl-full blur-[200px] animate-pulse-slow"></div>
+        <div className="relative z-10 flex flex-col lg:flex-row justify-between items-center gap-20">
+            <div className="text-center lg:text-right">
+                <h1 className="text-9xl md:text-[13rem] font-black text-white mb-16 tracking-tighter leading-none uppercase drop-shadow-3xl">Delta Control</h1>
+                <p className="text-4xl text-white/50 font-extrabold uppercase tracking-widest" dangerouslySetInnerHTML={{ __html: t('dashboard.welcome', { email: props.user.type === 'developer' ? 'MASTER_DEVELOPER' : (props.user.type === 'vip' ? props.user.name : props.user.email) }) }}></p>
+            </div>
+            <div className="bg-white/10 backdrop-blur-3xl px-24 py-12 rounded-[5rem] font-black text-5xl shadow-inner border-4 border-white/20 flex items-center gap-10 group">
+                <FingerprintIcon className="w-24 h-24 text-secondary group-hover:scale-125 transition-transform" /> 
+                <span className="uppercase tracking-[0.3em]">{props.user.type === 'developer' ? 'DEV_SHIELD_ON' : 'SECURE_LINK'}</span>
+            </div>
         </div>
+      </div>
+      {renderView()}
     </div>
   );
 };

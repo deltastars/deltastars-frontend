@@ -1,7 +1,31 @@
+
 {
-  "name": "Delta Stars Store",
-  "description": "A professional e-commerce store for Delta Stars, specializing in fresh fruits, vegetables, dates, and eggs in Saudi Arabia. The application features product galleries, a shopping cart, and detailed company information.",
+  "name": "متجر نجوم دلتا للتجارة",
+  "short_name": "نجوم دلتا",
+  "description": "حلول التوريد اللوجستية المتكاملة للفنادق والشركات الكبرى - خضروات، فواكه، وتمور طازجة من المزرعة للمائدة.",
+  "icons": [
+    {
+      "src": "https://lh3.googleusercontent.com/d/1-0qvsPmpVVnWdGJHrlJ4rbtecG-i5n4l",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://lh3.googleusercontent.com/d/1-0qvsPmpVVnWdGJHrlJ4rbtecG-i5n4l",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
   "requestFramePermissions": [
+    "camera",
+    "microphone",
     "geolocation"
-  ]
+  ],
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#1a3a1a",
+  "background_color": "#ffffff",
+  "categories": ["shopping", "business"]
 }

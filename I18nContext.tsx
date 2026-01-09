@@ -1,5 +1,6 @@
+
 import React, { createContext, useState, useContext, useCallback, useEffect, ReactNode } from 'react';
-import { translations, Translation } from '../components/translations';
+import { translations, Translation } from '../../../translations';
 import { GoogleGenAI } from '@google/genai';
 
 type Language = 'ar' | 'en';
@@ -22,7 +23,6 @@ interface I18nContextType {
 
 const I18nContext = createContext<I18nContextType | undefined>(undefined);
 
-// Helper function for nested keys
 const getNestedTranslation = (obj: Translation, key: string): string | Translation | undefined => {
     return key.split('.').reduce<string | Translation | undefined>((acc, cur) => {
         if (acc && typeof acc === 'object' && cur in acc) {
@@ -33,15 +33,20 @@ const getNestedTranslation = (obj: Translation, key: string): string | Translati
 };
 
 export const I18nProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [language, setLanguage] = useState<Language>('ar');
-  const [currency, setCurrencyState] = useState<Currency>(() => {
-    try {
-        const savedCurrency = localStorage.getItem('delta-currency');
-        return (savedCurrency as Currency) || 'sar';
-    } catch (e) {
-        return 'sar';
-    }
+  const [language, setLanguage] = useState<Language>(() => {
+    const saved = localStorage.getItem('delta-lang');
+    return (saved as Language) || 'ar';
   });
+
+  const [currency, setCurrencyState] = useState<Currency>(() => {
+    const saved = localStorage.getItem('delta-currency');
+    return (saved as Currency) || 'sar';
+  });
+
+  const setLanguageWrapper = (lang: Language) => {
+    setLanguage(lang);
+    localStorage.setItem('delta-lang', lang);
+  };
 
   const setCurrency = (curr: Currency) => {
     localStorage.setItem('delta-currency', curr);
@@ -88,13 +93,12 @@ export const I18nProvider: React.FC<{ children: React.ReactNode }> = ({ children
             currency: currencyInfo[currency].code,
         }).format(convertedPrice);
     } catch (e) {
-        // Fallback for simpler formatting if Intl fails
         const symbols: Record<Currency, string> = { sar: 'SAR', usd: '$', eur: '€' };
         return `${convertedPrice.toFixed(2)} ${symbols[currency]}`;
     }
   }, [currency, language]);
 
-  const value = { language, setLanguage, t, currency, setCurrency, formatCurrency };
+  const value = { language, setLanguage: setLanguageWrapper, t, currency, setCurrency, formatCurrency };
 
   return (
     <I18nContext.Provider value={value}>
@@ -129,14 +133,13 @@ export const GeminiAiProvider: React.FC<{ children: ReactNode }> = ({ children }
     try {
         const apiKey = process.env.API_KEY;
         if (!apiKey) {
-            console.error("API_KEY environment variable not set for Gemini AI.");
+            console.warn("AI Assistant disabled: API_KEY not found in environment.");
             setContextValue({ ai: null, status: 'error' });
             return;
         }
-        const aiInstance = new GoogleGenAI({ apiKey: apiKey });
+        const aiInstance = new GoogleGenAI({ apiKey });
         setContextValue({ ai: aiInstance, status: 'ready' });
     } catch (e) {
-      console.error("Failed to initialize Gemini AI:", e);
       setContextValue({ ai: null, status: 'error' });
     }
   }, []);

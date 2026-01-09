@@ -1,9 +1,10 @@
-import { VipClient, Invoice, Payment, VipTransaction } from '../types';
+
+import { VipClient, Invoice, Payment, VipTransaction } from '../../../types';
 
 export const mockVipClients: VipClient[] = [
-    { id: '966558828009', phone: '966558828009', companyName: 'فندق دلتا التجريبي', contactPerson: 'مدير المشتريات', shippingAddress: 'شارع المنار، جدة، المملكة العربية السعودية' },
-    { id: '966501234567', phone: '966501234567', companyName: 'مطاعم الواحة', contactPerson: 'الشيف التنفيذي', shippingAddress: 'طريق الملك عبدالعزيز، حي الزهراء، جدة' },
-    { id: '966598765432', phone: '966598765432', companyName: 'سوبرماركت النجمة', contactPerson: 'مسؤول قسم الخضار', shippingAddress: 'شارع الأمير سلطان، حي السلامة، جدة' },
+    { id: '966558828009', phone: '966558828009', companyName: 'فندق دلتا التجريبي', contactPerson: 'مدير المشتريات', shippingAddress: 'شارع المنار، جدة، المملكة العربية السعودية', creditLimit: 10000, currentBalance: 0 },
+    { id: '966501234567', phone: '966501234567', companyName: 'مطاعم الواحة', contactPerson: 'الشيف التنفيذي', shippingAddress: 'طريق الملك عبدالعزيز، حي الزهراء، جدة', creditLimit: 5000, currentBalance: -363.08 },
+    { id: '966598765432', phone: '966598765432', companyName: 'سوبرماركت النجمة', contactPerson: 'مسؤول قسم الخضار', shippingAddress: 'شارع الأمير سلطان، حي السلامة، جدة', creditLimit: 15000, currentBalance: 0 },
 ];
 
 export const mockInvoices: Invoice[] = [
@@ -25,6 +26,18 @@ export const mockInvoices: Invoice[] = [
     total: 543.08,
     status: 'Pending Payment',
     status_ar: 'بانتظار الدفع',
+    type: 'Sales'
+  },
+  {
+    id: 'PUR-DS-001',
+    customerName: 'المورد العالمي للفواكه',
+    date: '2024-06-01',
+    items: [{ productId: 1, name_ar: 'تفاح سكري', quantity: 1000, price: 4.5 }],
+    subtotal: 4500,
+    total: 4500,
+    status: 'Paid',
+    status_ar: 'مدفوع',
+    type: 'Purchase'
   },
    {
     id: 'INV-DS-1029',
@@ -43,25 +56,8 @@ export const mockInvoices: Invoice[] = [
     total: 639.50,
     status: 'Paid',
     status_ar: 'مدفوع',
-  },
-  {
-    id: 'INV-DS-1031',
-    orderId: 'DS-1031',
-    clientId: '966598765432',
-    customerName: 'سوبرماركت النجمة',
-    date: '2024-06-04',
-    dueDate: '2024-06-19',
-    items: [
-      { productId: 1, name_ar: 'تفاح سكري', name_en: 'Apple Gala', quantity: 100, price: 7 },
-      { productId: 7, name_ar: 'موز', name_en: 'Banana', quantity: 80, price: 6.5 },
-    ],
-    subtotal: 1220.00,
-    shipping: 50.00,
-    tax: 183.00,
-    total: 1453.00,
-    status: 'Pending Payment',
-    status_ar: 'بانتظار الدفع',
-  },
+    type: 'Sales'
+  }
 ];
 
 export const mockPayments: Payment[] = [
@@ -81,6 +77,4 @@ export const mockTransactions: VipTransaction[] = [
     { id: 'TRN-01', clientId: '966501234567', date: '2024-05-22', description_ar: 'فاتورة طلب #DS-1021', description_en: 'Invoice for Order #DS-1021', debit: 320.00, credit: 0, balance: -320.00 },
     { id: 'TRN-02', clientId: '966501234567', date: '2024-05-25', description_ar: 'دفعة مقدمة', description_en: 'Advance Payment', debit: 0, credit: 500.00, balance: 180.00 },
     { id: 'TRN-03', clientId: '966501234567', date: '2024-05-28', description_ar: 'فاتورة #INV-DS-1024', description_en: 'Invoice #INV-DS-1024', debit: 543.08, credit: 0, balance: -363.08 },
-    { id: 'TRN-04', clientId: '966558828009', date: '2024-06-02', description_ar: 'فاتورة #INV-DS-1029', description_en: 'Invoice #INV-DS-1029', debit: 639.50, credit: 0, balance: -639.50 },
-    { id: 'TRN-05', clientId: '966558828009', date: '2024-06-03', description_ar: 'دفعة للفاتورة #INV-DS-1029', description_en: 'Payment for Invoice #INV-DS-1029', debit: 0, credit: 639.50, balance: 0.00 },
 ];

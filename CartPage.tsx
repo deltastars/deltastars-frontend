@@ -1,12 +1,9 @@
 
-
-
-
 import React, { useState } from 'react';
-import { CartItem, Page } from '../types';
+import { CartItem, Page } from '../../types';
 import { COMPANY_INFO } from '../constants';
-import { TrashIcon } from './lib/Icons';
-import { useI18n } from '../contexts/I18nContext';
+import { TrashIcon } from './contexts/Icons';
+import { useI18n } from './contexts/I18nContext';
 
 interface CartPageProps {
   cart: CartItem[];

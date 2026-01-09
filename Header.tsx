@@ -1,262 +1,158 @@
 
 import React, { useState, useEffect } from 'react';
-import { ShoppingCartIcon, UserIcon, MenuIcon, XIcon, LogoutIcon, LogoIcon, HeartIcon, SparklesIcon } from './Icons';
-import { User, Page, Product } from '../../types';
-import { useI18n, Currency } from '../../contexts/I18nContext';
-import { useSettings } from '../../contexts/SettingsContext';
+import { ShoppingCartIcon, UserIcon, MenuIcon, XIcon, LogoutIcon, LogoIcon, SparklesIcon, PlusIcon, HeartIcon } from './contexts/Icons';
+import { User, Page } from '../../types';
+import { useI18n } from './contexts/I18nContext';
 
 interface HeaderProps {
-  setPage: (page: Page, productId?: number) => void;
+  setPage: (page: Page) => void;
   cartItemCount: number;
   wishlistItemCount: number;
   user: User | null;
   onLogout: () => void;
   onToggleAiAssistant: () => void;
-  currentPage: Page;
-  products: Product[];
-  selectedProductId: number | null;
 }
 
-const DateDisplay = () => {
-    const { language } = useI18n();
-    const [dates, setDates] = useState({ gregorian: '', hijri: '' });
-
-    useEffect(() => {
-        const now = new Date();
-        const gregorianFormatter = new Intl.DateTimeFormat(language === 'ar' ? 'ar-SA' : 'en-US', {
-            weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
-        });
-        const hijriFormatter = new Intl.DateTimeFormat('ar-SA-u-ca-islamic', {
-            weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
-        });
-
-        setDates({
-            gregorian: gregorianFormatter.format(now),
-            hijri: hijriFormatter.format(now),
-        });
-    }, [language]);
-
-    return (
-        <div className="text-center md:text-right text-xs text-white font-extrabold">
-            {language === 'ar' ? <p>{dates.hijri}</p> : <p>{dates.gregorian}</p>}
-        </div>
-    );
-}
-
-const CurrencySwitcher: React.FC = () => {
-    const { currency, setCurrency, t } = useI18n();
-    const currencies: { code: Currency, label: string }[] = [
-        { code: 'sar', label: 'SAR (ر.س)' },
-        { code: 'usd', label: 'USD ($)' },
-        { code: 'eur', label: 'EUR (€)' },
-    ];
-    
-    return (
-        <div className="relative">
-            <select
-                value={currency}
-                onChange={(e) => setCurrency(e.target.value as Currency)}
-                className="bg-primary text-white font-black border-2 border-transparent hover:border-white rounded-md p-2 appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-secondary"
-                aria-label={t('header.selectCurrency')}
-            >
-                {currencies.map(c => (
-                    <option key={c.code} value={c.code} className="bg-primary-dark text-white font-bold">
-                        {c.label}
-                    </option>
-                ))}
-            </select>
-        </div>
-    )
-}
-
-export const Header: React.FC<HeaderProps> = ({ 
-  setPage, 
-  cartItemCount, 
-  user, 
-  onLogout, 
-  wishlistItemCount, 
-  onToggleAiAssistant,
-  currentPage,
-  products,
-  selectedProductId
-}) => {
+export const Header: React.FC<HeaderProps> = ({ setPage, cartItemCount, wishlistItemCount, user, onLogout, onToggleAiAssistant }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { t, language, setLanguage } = useI18n();
-  const { settings } = useSettings();
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+
+  useEffect(() => {
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    });
+  }, []);
+
+  const handleInstall = async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') setDeferredPrompt(null);
+    }
+  };
 
   const toggleLanguage = () => {
-    const newLang = language === 'ar' ? 'en' : 'ar';
-    setLanguage(newLang);
+    setLanguage(language === 'ar' ? 'en' : 'ar');
   };
-  
-  const navLinkTranslations = t('header.navLinks', { returnObjects: true });
   
   const navLinks = [
-    { label: navLinkTranslations.home, page: 'home' as const },
-    { label: navLinkTranslations.products, page: 'products' as const },
-    { label: navLinkTranslations.showroom, page: 'showroom' as const },
-    { label: navLinkTranslations.wishlist, page: 'wishlist' as const },
-    ...(user && user.type === 'admin' ? [{ label: navLinkTranslations.dashboard, page: 'dashboard' as const }] : []),
+    { label: t('header.navLinks.home'), page: 'home' as const },
+    { label: t('header.navLinks.products'), page: 'products' as const },
+    { label: t('header.navLinks.showroom'), page: 'showroom' as const },
+    ...(user ? [
+        { 
+          label: user.type === 'vip' ? t('header.navLinks.vipPortal') : t('header.navLinks.dashboard'), 
+          page: user.type === 'vip' ? 'vipDashboard' as const : 'dashboard' as const 
+        }
+    ] : []),
   ];
 
-  const getBreadcrumbs = () => {
-    const breadcrumbs = [{ label: t('header.home'), page: 'home' as Page, clickable: true }];
-
-    switch (currentPage) {
-      case 'products':
-        breadcrumbs.push({ label: t('header.products'), page: 'products' as Page, clickable: false });
-        break;
-      case 'productDetail':
-        breadcrumbs.push({ label: t('header.products'), page: 'products' as Page, clickable: true });
-        if (selectedProductId) {
-            const product = products.find(p => p.id === selectedProductId);
-            if (product) {
-                const name = language === 'ar' ? product.name_ar : product.name_en;
-                breadcrumbs.push({ label: name, page: 'productDetail' as Page, clickable: false });
-            }
-        }
-        break;
-      case 'cart':
-        breadcrumbs.push({ label: t('cart.title'), page: 'cart' as Page, clickable: false });
-        break;
-      case 'wishlist':
-        breadcrumbs.push({ label: t('wishlist.title'), page: 'wishlist' as Page, clickable: false });
-        break;
-      case 'showroom':
-        breadcrumbs.push({ label: t('showroom.title'), page: 'showroom' as Page, clickable: false });
-        break;
-      case 'login':
-        breadcrumbs.push({ label: t('login.title'), page: 'login' as Page, clickable: false });
-        break;
-      case 'dashboard':
-        breadcrumbs.push({ label: t('dashboard.title'), page: 'dashboard' as Page, clickable: false });
-        break;
-      case 'vipLogin':
-         breadcrumbs.push({ label: t('vip.login.title'), page: 'vipLogin' as Page, clickable: false });
-         break;
-      case 'vipDashboard':
-         breadcrumbs.push({ label: t('vip.dashboard.title'), page: 'vipDashboard' as Page, clickable: false });
-         break;
-      case 'privacy':
-        breadcrumbs.push({ label: t('footer.privacy'), page: 'privacy' as Page, clickable: false });
-        break;
-      case 'terms':
-        breadcrumbs.push({ label: t('footer.terms'), page: 'terms' as Page, clickable: false });
-        break;
-    }
-    return breadcrumbs;
-  };
-
-  const breadcrumbs = getBreadcrumbs();
-
   return (
-    <header className="bg-primary shadow-lg sticky top-0 z-50">
-      <div className="bg-primary-dark py-2">
-         <div className="container mx-auto px-4 flex justify-between items-center">
-            <DateDisplay />
-            <div className="text-sm text-white font-extrabold">{settings.company.name || t('header.storeTitle')}</div>
+    <header className="bg-primary shadow-2xl sticky top-0 z-[100] border-b border-white/5">
+      <div className="bg-primary-dark py-3">
+         <div className="container mx-auto px-6 flex justify-between items-center">
+            <div className="text-[10px] text-white/50 font-black tracking-widest uppercase">
+                {new Date().toLocaleDateString(language === 'ar' ? 'ar-SA' : 'en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+            </div>
+            <div className="flex items-center gap-6">
+                {deferredPrompt && (
+                    <button 
+                      onClick={handleInstall} 
+                      className="text-xs bg-secondary text-white px-6 py-2 rounded-full font-black shadow-lg hover:scale-105 transition-all flex items-center gap-2 border-2 border-white/20 animate-pulse"
+                    >
+                       📲 {language === 'ar' ? 'تثبيت تطبيق المتجر' : 'Install Store App'}
+                    </button>
+                )}
+                <div className="text-xs text-white/70 font-bold hidden sm:block">المورد المعتمد للفنادق والشركات الكبرى</div>
+            </div>
          </div>
       </div>
-      <div className="container mx-auto px-4">
-        <div className="flex justify-between items-center py-2">
-          <div className="flex items-center" dir="ltr">
-            <button onClick={() => setPage('home')} className="flex items-center gap-3">
-              <img src={settings.company.logoUrl} alt="Logo" className="w-14 h-14 object-contain" />
-              <h1 className="text-white text-3xl font-black hidden sm:block">{settings.company.name}</h1>
+      <div className="container mx-auto px-6">
+        <div className="flex justify-between items-center py-5">
+          <div className="flex items-center gap-6">
+            <button onClick={() => setPage('home')} className="flex items-center gap-4 group">
+              <LogoIcon className="w-16 h-16 group-hover:scale-110 transition-transform drop-shadow-xl" />
+              <div className="hidden sm:block text-right">
+                <h1 className="text-white text-3xl font-black leading-none">{t('header.storeName')}</h1>
+                <p className="text-secondary text-[10px] font-bold uppercase tracking-widest mt-1">Trading & Logistics Co.</p>
+              </div>
             </button>
           </div>
 
-          <nav className="hidden lg:flex items-center space-x-6">
+          <nav className="hidden lg:flex items-center gap-12">
             {navLinks.map(link => (
                 <button 
                   key={link.page} 
-                  onClick={() => setPage(link.page)} 
-                  className={`hover:text-secondary transition-colors duration-200 text-lg font-black ${currentPage === link.page ? 'text-secondary border-b-4 border-secondary' : 'text-white'}`}
+                  onClick={() => { setPage(link.page); setIsMenuOpen(false); }} 
+                  className="text-white hover:text-secondary transition-all text-xl font-black relative group/link"
                 >
                   {link.label}
+                  <span className="absolute -bottom-2 left-0 w-0 h-1 bg-secondary group-hover/link:w-full transition-all"></span>
                 </button>
             ))}
           </nav>
 
-          <div className="flex items-center space-x-4" dir="ltr">
-            <CurrencySwitcher />
-            <button onClick={toggleLanguage} className="text-white hover:text-secondary transition-colors font-black px-2 py-1 rounded-md border-2 border-transparent hover:border-white">
-              {language === 'ar' ? 'EN' : 'AR'}
+          <div className="flex items-center gap-8">
+            <button onClick={toggleLanguage} className="text-white hover:bg-secondary px-5 py-2 rounded-2xl border-2 border-white/10 font-black transition-all text-sm">
+              {language === 'ar' ? 'EN' : 'عربي'}
             </button>
-             <button onClick={onToggleAiAssistant} className="text-white hover:text-secondary transition-colors" title={t('aiAssistant.open')}>
-              <SparklesIcon className="w-6 h-6" />
+            
+             <button onClick={onToggleAiAssistant} className="text-white hover:scale-125 transition-transform bg-white/5 p-3 rounded-full hidden sm:flex">
+              <SparklesIcon className="w-8 h-8 text-secondary" />
             </button>
+
             {user ? (
-              <button onClick={onLogout} className="text-white hover:text-secondary transition-colors" title={t('header.logout')}>
+              <button onClick={onLogout} className="text-red-400 hover:bg-red-500/10 p-3 rounded-full transition-colors">
                 <LogoutIcon />
               </button>
             ) : (
-              <button onClick={() => setPage('login')} className="text-white hover:text-secondary transition-colors" title={t('header.login')}>
+              <button onClick={() => setPage('login')} className="text-white hover:text-secondary bg-white/5 p-3 rounded-full transition-all">
                 <UserIcon />
               </button>
             )}
-            <button onClick={() => setPage('wishlist')} className="relative text-white hover:text-secondary transition-colors" title={t('header.wishlist')}>
-              <HeartIcon filled={wishlistItemCount > 0} className="w-6 h-6" />
-              {wishlistItemCount > 0 && (
-                <span className="absolute -top-2 -right-2 bg-secondary text-white text-xs font-black rounded-full h-5 w-5 flex items-center justify-center">
+
+            <button onClick={() => setPage('wishlist')} className="relative text-white bg-white/5 p-3 rounded-full group hidden md:flex">
+               <HeartIcon className="w-8 h-8" />
+               {wishlistItemCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-black rounded-full h-6 w-6 flex items-center justify-center border-2 border-primary">
                   {wishlistItemCount}
                 </span>
               )}
             </button>
-            <button onClick={() => setPage('cart')} className="relative text-white hover:text-secondary transition-colors">
-              <ShoppingCartIcon />
+
+            <button onClick={() => setPage('cart')} className="relative text-white bg-white/5 p-3 rounded-full group">
+              <ShoppingCartIcon className="w-8 h-8" />
               {cartItemCount > 0 && (
-                <span className="absolute -top-2 -right-2 bg-secondary text-white text-xs font-black rounded-full h-5 w-5 flex items-center justify-center">
+                <span className="absolute -top-1 -right-1 bg-secondary text-white text-[10px] font-black rounded-full h-6 w-6 flex items-center justify-center border-2 border-primary animate-bounce">
                   {cartItemCount}
                 </span>
               )}
             </button>
+
             <button className="lg:hidden text-white" onClick={() => setIsMenuOpen(!isMenuOpen)}>
-              {isMenuOpen ? <XIcon /> : <MenuIcon />}
+              {isMenuOpen ? <XIcon className="w-10 h-10" /> : <MenuIcon className="w-10 h-10" />}
             </button>
           </div>
         </div>
       </div>
-       {isMenuOpen && (
-        <div className="lg:hidden bg-primary-dark">
-          <nav className="flex flex-col items-center py-4">
-             {navLinks.map(link => (
+      
+      {isMenuOpen && (
+        <div className="lg:hidden bg-primary-dark border-t border-white/5 p-10 space-y-6 animate-fade-in-down">
+           {navLinks.map(link => (
                 <button 
                   key={link.page} 
                   onClick={() => { setPage(link.page); setIsMenuOpen(false); }} 
-                  className="text-white py-2 w-full text-center hover:bg-primary-light transition-colors duration-200 font-black"
+                  className="block w-full text-right text-white text-3xl font-black py-4 border-b border-white/5"
                 >
                   {link.label}
                 </button>
             ))}
-          </nav>
-        </div>
-      )}
-      
-      {currentPage !== 'home' && (
-         <div className="bg-gray-100 py-2 shadow-inner border-t border-gray-200">
-            <div className="container mx-auto px-4">
-                <nav className="flex" aria-label="Breadcrumb">
-                    <ol className="inline-flex items-center space-x-1 md:space-x-3 rtl:space-x-reverse flex-wrap">
-                        {breadcrumbs.map((crumb, index) => (
-                            <li key={index} className="inline-flex items-center">
-                                {index > 0 && (
-                                     <svg className="w-3 h-3 text-gray-600 mx-1 rtl:rotate-180" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 6 10">
-                                        <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="m1 9 4-4-4-4"/>
-                                    </svg>
-                                )}
-                                {crumb.clickable ? (
-                                    <button onClick={() => setPage(crumb.page)} className="inline-flex items-center text-sm font-extrabold text-gray-700 hover:text-primary">
-                                        {crumb.label}
-                                    </button>
-                                ) : (
-                                    <span className="ml-1 text-sm font-extrabold text-gray-600 md:ml-2 truncate max-w-[150px] md:max-w-none">{crumb.label}</span>
-                                )}
-                            </li>
-                        ))}
-                    </ol>
-                </nav>
-            </div>
+            <button onClick={() => { onToggleAiAssistant(); setIsMenuOpen(false); }} className="w-full text-right text-secondary text-3xl font-black py-4 border-b border-white/5 flex items-center justify-between">
+                <span>المساعد الذكي عُدي</span>
+                <SparklesIcon className="w-8 h-8" />
+            </button>
         </div>
       )}
     </header>

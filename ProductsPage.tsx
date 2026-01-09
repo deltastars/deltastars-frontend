@@ -1,19 +1,19 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { Product, Page, Review } from '../types';
-import { ProductCard } from './ProductCard';
-import { useI18n } from '../contexts/I18nContext';
-import { StarIcon } from './lib/Icons';
+import { Product, Page, Review } from '../../../types';
+import { ProductCard } from '../../ProductCard';
+import { useI18n } from './I18nContext';
+import { StarIcon } from './Icons';
 
 interface ProductsPageProps {
-  addToCart: (product: Product) => void;
+  addToCart: (product: Product, quantity: number) => void;
   products: Product[];
   toggleWishlist: (product: Product) => void;
   isProductInWishlist: (productId: number) => boolean;
-  setPage: (page: Page, productId?: number) => void;
+  setPage: (page: Page, productId?: number, category?: string) => void;
   getAverageRating: (productId: number) => { average: number; count: number };
   reviews: Review[];
-  onZoom?: (src: string) => void;
+  initialCategory?: string;
 }
 
 const ALL_CATEGORIES_KEY = 'all';
@@ -27,46 +27,55 @@ const ReviewsModal: React.FC<{
   const { t, language } = useI18n();
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-lg relative max-h-[90vh]">
-        <button onClick={onClose} className="absolute top-2 end-3 text-gray-400 hover:text-gray-800 text-3xl font-bold">&times;</button>
-        <div className="p-6">
-          <h2 className="text-2xl font-bold text-primary mb-4">{t('reviews.title')}</h2>
-          <h3 className="text-xl font-bold text-black mb-6">{language === 'ar' ? product.name_ar : product.name_en}</h3>
-          <div className="space-y-6 overflow-y-auto max-h-[60vh] pr-2">
-            {reviews.length > 0 ? (
-              reviews.map(review => (
-                <div key={review.id} className="bg-gray-50 p-4 rounded-lg border-l-4 border-primary">
-                  <div className="flex items-center mb-2">
-                    <div className="flex">
-                      {[...Array(5)].map((_, i) => (
-                        <StarIcon key={i} className="w-5 h-5" filled={i < review.rating} />
-                      ))}
-                    </div>
-                    <h4 className="font-extrabold text-black ms-3">{review.author}</h4>
+    <div className="fixed inset-0 bg-black/60 z-[110] flex justify-center items-center p-4 backdrop-blur-sm">
+      <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-lg relative max-h-[85vh] overflow-hidden flex flex-col">
+        <button onClick={onClose} className="absolute top-6 end-6 text-gray-400 hover:text-black text-4xl font-black z-20">&times;</button>
+        <div className="p-10 border-b border-gray-100 bg-gray-50/50">
+          <h2 className="text-2xl font-black text-primary mb-2">{t('reviews.title')}</h2>
+          <h3 className="text-lg font-bold text-gray-500">{language === 'ar' ? product.name_ar : product.name_en}</h3>
+        </div>
+        <div className="p-10 overflow-y-auto flex-grow space-y-6">
+          {reviews.length > 0 ? (
+            reviews.map(review => (
+              <div key={review.id} className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                <div className="flex justify-between items-center mb-4">
+                  <div className="flex">
+                    {[...Array(5)].map((_, i) => (
+                      <StarIcon key={i} className="w-4 h-4" filled={i < review.rating} />
+                    ))}
                   </div>
-                  <p className="text-black font-semibold">{review.comment}</p>
-                  <p className="text-xs text-gray-700 mt-2">{new Date(review.date).toLocaleDateString()}</p>
+                  <span className="text-xs text-gray-400 font-bold">{new Date(review.date).toLocaleDateString(language === 'ar' ? 'ar-SA' : 'en-US')}</span>
                 </div>
-              ))
-            ) : (
-              <p className="text-black text-center py-8 font-semibold">{t('reviews.noReviews')}</p>
-            )}
-          </div>
+                <h4 className="font-black text-black mb-2">{review.author}</h4>
+                <p className="text-gray-600 font-bold text-sm leading-relaxed">{review.comment}</p>
+              </div>
+            ))
+          ) : (
+            <div className="text-center py-20 text-gray-400 font-black">
+                <span className="text-6xl block mb-4">💬</span>
+                {t('reviews.noReviews')}
+            </div>
+          )}
         </div>
       </div>
     </div>
   );
 };
 
-
-export const ProductsPage: React.FC<ProductsPageProps> = ({ addToCart, products, toggleWishlist, isProductInWishlist, setPage, getAverageRating, reviews, onZoom }) => {
+export const ProductsPage: React.FC<ProductsPageProps> = ({ addToCart, products, toggleWishlist, isProductInWishlist, setPage, getAverageRating, reviews, initialCategory }) => {
   const { t, language } = useI18n();
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState(ALL_CATEGORIES_KEY);
+  const [selectedCategory, setSelectedCategory] = useState(initialCategory || ALL_CATEGORIES_KEY);
   const [sortOption, setSortOption] = useState('default');
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedProductForReviews, setSelectedProductForReviews] = useState<Product | null>(null);
+
+  // تحديث القسم المختار في حال تغير الـ initialCategory من الأب
+  useEffect(() => {
+    if (initialCategory) {
+        setSelectedCategory(initialCategory);
+    }
+  }, [initialCategory]);
   
   const uniqueCategories = useMemo(() => {
     const categories = Array.from(new Set(products.map(p => p.category)));
@@ -77,173 +86,124 @@ export const ProductsPage: React.FC<ProductsPageProps> = ({ addToCart, products,
     const filtered = products.filter(product => {
       const matchesCategory = selectedCategory === ALL_CATEGORIES_KEY || product.category === selectedCategory;
       const productName = language === 'ar' ? product.name_ar : product.name_en;
-      const matchesSearch = productName.toLowerCase().includes(searchTerm.toLowerCase());
-      return matchesCategory && matchesSearch;
+      return matchesCategory && productName.toLowerCase().includes(searchTerm.toLowerCase());
     });
 
     const sortableProducts = [...filtered];
-
     switch (sortOption) {
-      case 'priceAsc':
-        sortableProducts.sort((a, b) => a.price - b.price);
-        break;
-      case 'priceDesc':
-        sortableProducts.sort((a, b) => b.price - a.price);
-        break;
-      case 'nameAsc':
+      case 'priceAsc': sortableProducts.sort((a, b) => a.price - b.price); break;
+      case 'priceDesc': sortableProducts.sort((a, b) => b.price - a.price); break;
+      case 'nameAsc': 
         sortableProducts.sort((a, b) => {
-          const nameA = language === 'ar' ? a.name_ar : a.name_en;
-          const nameB = language === 'ar' ? b.name_ar : b.name_en;
-          return nameA.localeCompare(nameB);
-        });
-        break;
-      case 'nameDesc':
-        sortableProducts.sort((a, b) => {
-          const nameA = language === 'ar' ? a.name_ar : a.name_en;
-          const nameB = language === 'ar' ? b.name_ar : b.name_en;
-          return nameB.localeCompare(nameA);
-        });
-        break;
-      case 'ratingDesc':
-        sortableProducts.sort((a, b) => {
-            const ratingA = getAverageRating(a.id).average;
-            const ratingB = getAverageRating(b.id).average;
-            return ratingB - ratingA;
-        });
-        break;
-      default:
-        // 'filter' preserves the original sort order (by ID)
-        break;
+          const nA = language === 'ar' ? a.name_ar : a.name_en;
+          const nB = language === 'ar' ? b.name_ar : b.name_en;
+          return nA.localeCompare(nB);
+        }); break;
+      case 'ratingDesc': sortableProducts.sort((a, b) => getAverageRating(b.id).average - getAverageRating(a.id).average); break;
     }
-    
     return sortableProducts;
-
   }, [searchTerm, selectedCategory, sortOption, language, products, getAverageRating]);
 
-  // Effect to reset page to 1 when filters change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm, selectedCategory, sortOption]);
+  useEffect(() => { setCurrentPage(1); }, [searchTerm, selectedCategory, sortOption]);
 
-  // Pagination logic
   const totalPages = Math.ceil(sortedAndFilteredProducts.length / PRODUCTS_PER_PAGE);
-  const indexOfLastProduct = currentPage * PRODUCTS_PER_PAGE;
-  const indexOfFirstProduct = indexOfLastProduct - PRODUCTS_PER_PAGE;
-  const currentProducts = sortedAndFilteredProducts.slice(indexOfFirstProduct, indexOfLastProduct);
-
-  const handlePageChange = (pageNumber: number) => {
-    if (pageNumber < 1 || pageNumber > totalPages) return;
-    setCurrentPage(pageNumber);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+  const currentProducts = sortedAndFilteredProducts.slice((currentPage-1)*PRODUCTS_PER_PAGE, currentPage*PRODUCTS_PER_PAGE);
 
   return (
-    <div className="container mx-auto px-4 py-8">
-       {selectedProductForReviews && (
-            <ReviewsModal
-                product={selectedProductForReviews}
-                reviews={reviews.filter(r => r.productId === selectedProductForReviews.id)}
-                onClose={() => setSelectedProductForReviews(null)}
-            />
-        )}
-      <div className="text-center mb-8">
-        <h1 className="text-4xl font-black text-primary">{t('products.title')}</h1>
-        <p className="text-lg text-black font-extrabold mt-2">{t('products.subtitle')}</p>
+    <div className="container mx-auto px-4 py-16">
+      {selectedProductForReviews && (
+          <ReviewsModal
+              product={selectedProductForReviews}
+              reviews={reviews.filter(r => r.productId === selectedProductForReviews.id)}
+              onClose={() => setSelectedProductForReviews(null)}
+          />
+      )}
+      
+      <div className="text-center mb-16">
+        <h1 className="text-5xl font-black text-primary mb-4">{t('products.title')}</h1>
+        <p className="text-xl text-gray-500 font-bold">{t('products.subtitle')}</p>
       </div>
 
-      <div className="mb-8 flex flex-col md:flex-row gap-4">
+      <div className="bg-white p-8 rounded-[2.5rem] shadow-xl mb-12 flex flex-col lg:flex-row gap-6 border border-gray-100">
         <input
           type="text"
           placeholder={t('products.searchPlaceholder')}
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full md:flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent font-bold"
+          className="lg:flex-grow p-5 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-primary font-bold transition-all"
         />
-        <select
-          value={selectedCategory}
-          onChange={(e) => setSelectedCategory(e.target.value)}
-          className="w-full md:flex-1 p-3 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-primary focus:border-transparent font-bold"
-        >
-          {uniqueCategories.map(category => (
-            <option key={category} value={category}>
-                {category === ALL_CATEGORIES_KEY ? t('products.allCategories') : t(`categories.${category}`)}
-            </option>
-          ))}
-        </select>
-        <select
-          value={sortOption}
-          onChange={(e) => setSortOption(e.target.value)}
-          className="w-full md:flex-1 p-3 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-primary focus:border-transparent font-bold"
-          aria-label={t('products.sortBy')}
-        >
-          <option value="default">{t('products.sort.default')}</option>
-          <option value="priceAsc">{t('products.sort.priceAsc')}</option>
-          <option value="priceDesc">{t('products.sort.priceDesc')}</option>
-          <option value="nameAsc">{t('products.sort.nameAsc')}</option>
-          <option value="nameDesc">{t('products.sort.nameDesc')}</option>
-          <option value="ratingDesc">{t('products.sort.ratingDesc')}</option>
-        </select>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <select
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+              className="p-5 bg-gray-50 border-none rounded-2xl font-bold focus:ring-2 focus:ring-primary cursor-pointer"
+            >
+              {uniqueCategories.map(cat => (
+                <option key={cat} value={cat}>{cat === ALL_CATEGORIES_KEY ? t('products.allCategories') : t(`categories.${cat}`)}</option>
+              ))}
+            </select>
+            <select
+              value={sortOption}
+              onChange={(e) => setSortOption(e.target.value)}
+              className="p-5 bg-gray-50 border-none rounded-2xl font-bold focus:ring-2 focus:ring-primary cursor-pointer"
+            >
+              <option value="default">{t('products.sort.default')}</option>
+              <option value="priceAsc">{t('products.sort.priceAsc')}</option>
+              <option value="priceDesc">{t('products.sort.priceDesc')}</option>
+              <option value="ratingDesc">{t('products.sort.ratingDesc')}</option>
+            </select>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-10">
         {currentProducts.length > 0 ? (
-          currentProducts.map(product => (
+          currentProducts.map(p => (
             <ProductCard 
-              key={product.id} 
-              product={product} 
+              key={p.id} product={p} 
               onAddToCart={addToCart}
               toggleWishlist={toggleWishlist}
-              isInWishlist={isProductInWishlist(product.id)}
+              isInWishlist={isProductInWishlist(p.id)}
               setPage={setPage}
-              rating={getAverageRating(product.id)}
-              onViewReviews={() => setSelectedProductForReviews(product)}
-              onZoom={onZoom}
+              rating={getAverageRating(p.id)}
+              onViewReviews={() => setSelectedProductForReviews(p)}
             />
           ))
         ) : (
-          <p className="col-span-full text-center text-black text-xl py-12 font-bold">
-            {t('products.noResults')}
-          </p>
+          <div className="col-span-full text-center py-24 bg-white rounded-[3rem] shadow-sm">
+            <span className="text-8xl block mb-6">🔍</span>
+            <p className="text-2xl font-black text-gray-400">{t('products.noResults')}</p>
+          </div>
         )}
       </div>
       
       {totalPages > 1 && (
-        <nav aria-label="Product pagination" className="mt-12 flex justify-center items-center gap-2 flex-wrap">
+        <div className="mt-20 flex justify-center gap-4">
             <button
-              onClick={() => handlePageChange(currentPage - 1)}
+              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
               disabled={currentPage === 1}
-              className="px-4 py-2 bg-white border border-gray-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 font-bold"
-              aria-label={t('pagination.previous')}
+              className="px-8 py-3 bg-white border border-gray-100 rounded-2xl font-black disabled:opacity-30 hover:bg-primary hover:text-white transition-all shadow-sm"
             >
               {t('pagination.previous')}
             </button>
-            
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map(pageNumber => (
-              <button
-                key={pageNumber}
-                onClick={() => handlePageChange(pageNumber)}
-                className={`px-4 py-2 border rounded-md transition-colors font-bold ${
-                  currentPage === pageNumber
-                    ? 'bg-primary text-white border-primary'
-                    : 'bg-white text-black border-gray-300 hover:bg-gray-100'
-                }`}
-                aria-current={currentPage === pageNumber ? 'page' : undefined}
-              >
-                {pageNumber}
-              </button>
-            ))}
-            
+            <div className="flex items-center gap-2">
+                {[...Array(totalPages)].map((_, i) => (
+                    <button 
+                        key={i} onClick={() => setCurrentPage(i+1)}
+                        className={`w-12 h-12 rounded-2xl font-black transition-all ${currentPage === i+1 ? 'bg-primary text-white shadow-lg scale-110' : 'bg-white text-gray-400 hover:bg-gray-50'}`}
+                    >
+                        {i + 1}
+                    </button>
+                ))}
+            </div>
             <button
-              onClick={() => handlePageChange(currentPage + 1)}
+              onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
               disabled={currentPage === totalPages}
-              className="px-4 py-2 bg-white border border-gray-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 font-bold"
-              aria-label={t('pagination.next')}
+              className="px-8 py-3 bg-white border border-gray-100 rounded-2xl font-black disabled:opacity-30 hover:bg-primary hover:text-white transition-all shadow-sm"
             >
               {t('pagination.next')}
             </button>
-        </nav>
+        </div>
       )}
-
     </div>
   );
 };

@@ -1,21 +1,34 @@
+
 {
-  "name": "متجر نجوم دلتا | Delta Stars Store",
-  "short_name": "Delta Stars",
-  "description": "متجر مختص باستيراد وتجارة الخضروات والفواكه الطازجة والتمور والبيض.",
+  "name": "متجر نجوم دلتا للتجارة",
+  "short_name": "نجوم دلتا",
+  "description": "الحل المتكامل لتوريد الخضروات والفواكه والتمور بأحدث تقنيات التتبع والواقع المعزز.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#f9fafb",
-  "theme_color": "#2d5c2d",
+  "orientation": "portrait",
+  "background_color": "#0d1f0d",
+  "theme_color": "#1a3a1a",
   "icons": [
     {
       "src": "https://lh3.googleusercontent.com/d/1-0qvsPmpVVnWdGJHrlJ4rbtecG-i5n4l",
+      "sizes": "192x192",
       "type": "image/png",
-      "sizes": "192x192"
+      "purpose": "any maskable"
     },
     {
       "src": "https://lh3.googleusercontent.com/d/1-0qvsPmpVVnWdGJHrlJ4rbtecG-i5n4l",
+      "sizes": "512x512",
       "type": "image/png",
-      "sizes": "512x512"
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["shopping", "business"],
+  "screenshots": [
+    {
+      "src": "https://lh3.googleusercontent.com/d/1wK2o57aJXCLzoZtLMzDME7BQbJm4-Z8e",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide"
     }
   ]
 }

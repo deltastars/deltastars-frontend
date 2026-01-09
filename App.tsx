@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import { Analytics } from '@vercel/analytics/react';
 import { Header } from './lib/Header';
 import { Footer } from './lib/Footer';
 import { Home } from './Home';
@@ -266,6 +267,7 @@ export default function App() {
         <GeminiAiProvider>
           <MainApp />
           <ToastContainer />
+          <Analytics />
         </GeminiAiProvider>
       </ToastProvider>
     </I18nProvider>
